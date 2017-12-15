@@ -128,6 +128,8 @@ export SCOPES=https://www.googleapis.com/auth/firebase.database,https://www.goog
 gcloud compute instances create flask-demo --scopes $SCOPES
 ```
 
+* The `cloud-platform` scope is not required for this example. But it is required if you ever
+  access Google Cloud Storage or Cloud Firestore from the Admin SDK.
 * Start the VM instance.
 
 ```
