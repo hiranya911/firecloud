@@ -1,7 +1,9 @@
 # Flask on Google Compute Engine
 
-This is a simple Python web service based on Flask. It can be deployed on any environment that
-supports Python, including Google Compute Engine. The web service uses Firebase Admin SDK to
+This is a simple Python web service based on [Flask](http://flask.pocoo.org/docs/0.12/quickstart/).
+It can be deployed on any environment that
+supports Python, including Google Compute Engine. The web service uses 
+[Firebase Admin SDK](https://firebase.google.com/docs/admin/setup) to
 interact with the Firebase Realtime Database.
 
 ## Requirements
@@ -9,6 +11,7 @@ interact with the Firebase Realtime Database.
 * Python 2.7
 * `virtualenv` is recommended for local testing
 * `gcloud` command line utilities
+* `curl` command lint tool
 
 ## Local Setup
 
@@ -139,7 +142,7 @@ gcloud compute ssh flask-demo
 
 * Copy `super_heroes.py` into the file system of the instance. You can either scp the file over,
   or just copy-and-paste the content manually since the file is very small. Make sure the
-  database URL is correct in the file.
+  database URL is correct in the deployed file.
 * Install the necessary tools and dependencies.
 
 ```
@@ -166,15 +169,15 @@ flask run
 
 * Run some curl commands from the VM instance to make sure everything is working as expected.
 * To send requests to the service remotely, you need to:
-
-  a. bind Flask service to the public facing network interface.
+  - Bind the Flask server to the public facing network interface.
+  - Open up Flask port (5000) in the GCP Firewall.
 
 ```
+# On VM instance
 flask run --host=0.0.0.0
 ```
 
-  b. Open up Flask port (5000) in the GCP Firewall.
-
 ```
+# On local workstation
 gcloud compute firewall-rules create open-flask --allow tcp:5000 --source-tags=flask-demo --source-ranges=0.0.0.0/0
 ```
