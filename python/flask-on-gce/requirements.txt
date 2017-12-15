@@ -1,0 +1,2 @@
+firebase-admin >= 5.6.0
+flask >= 0.12.2
