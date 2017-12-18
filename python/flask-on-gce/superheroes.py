@@ -22,14 +22,14 @@ import flask
 app = flask.Flask(__name__)
 
 firebase_admin.initialize_app(options={
-    'databaseURL': 'https://<DB_NAME>.firebaseio.com'
+    'databaseURL': 'https://hjk-test-storage.firebaseio.com'
 })
-SUPER_HEROES = db.reference('super_heroes')
+SUPERHEROES = db.reference('superheroes')
 
 @app.route('/heroes', methods=['POST'])
 def create_hero():
     req = flask.request.json
-    hero = SUPER_HEROES.push(req)
+    hero = SUPERHEROES.push(req)
     return flask.jsonify({'id': hero.key}), 201
 
 @app.route('/heroes/<id>')
@@ -40,17 +40,17 @@ def read_hero(id):
 def update_hero(id):
     _ensure_hero(id)
     req = flask.request.json
-    SUPER_HEROES.child(id).update(req)
+    SUPERHEROES.child(id).update(req)
     return flask.jsonify({'success': True})
 
 @app.route('/heroes/<id>', methods=['DELETE'])
 def delete_hero(id):
     _ensure_hero(id)
-    SUPER_HEROES.child(id).delete()
+    SUPERHEROES.child(id).delete()
     return flask.jsonify({'success': True})
 
 def _ensure_hero(id):
-    hero = SUPER_HEROES.child(id).get()
+    hero = SUPERHEROES.child(id).get()
     if not hero:
         flask.abort(404)
     return hero

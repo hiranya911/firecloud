@@ -36,12 +36,12 @@ export GOOGLE_APPLICATION_CREDENTIALS=path/to/serviceAccount.json
 pip install -r requirements.txt
 ```
 
-* Update the `<DB_NAME>` field in `super_heroes.py`. This should point to the Realtime Database of
+* Update the `<DB_NAME>` field in `superheroes.py`. This should point to the Realtime Database of
   your Firebase project.
 * Launch the web service.
 
 ```
-export FLASK_APP=super_heroes.py
+export FLASK_APP=superheroes.py
 flask run
 ```
 
@@ -52,7 +52,7 @@ flask run
 
 * Create a new entry by sending a POST request. This responds with an HTTP `201 Created` response,
   and a unique ID string. When completed, the entry should be saved to the Firebase Realtime
-  Database at `/super_heroes/<ID>`. 
+  Database at `/superheroes/<ID>`. 
 
 ```
 $ curl -v -X POST -d @spiderman.json -H "Content-type: application/json" http://localhost:5000/heroes
@@ -142,7 +142,7 @@ gcloud compute instances start flask-demo
 gcloud compute ssh flask-demo
 ```
 
-* Copy `super_heroes.py` into the file system of the instance. You can either scp the file over,
+* Copy `superheroes.py` into the file system of the instance. You can either scp the file over,
   or just copy-and-paste the content manually since the file is very small. Make sure the
   database URL is correct in the deployed file.
 * Install the necessary tools and dependencies.
@@ -165,7 +165,7 @@ sudo pip install flask
 * Launch the application as usual.
 
 ```
-export FLASK_APP=super_heroes.py
+export FLASK_APP=superheroes.py
 flask run
 ```
 
