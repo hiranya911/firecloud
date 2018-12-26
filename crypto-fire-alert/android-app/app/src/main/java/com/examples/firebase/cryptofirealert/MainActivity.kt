@@ -44,7 +44,7 @@ class MainActivity : AppCompatActivity() {
                 for (doc in value!!) {
                     val id = resources.getIdentifier(doc.id, "id", packageName)
                     if (id != 0) {
-                        val text = "1 ${doc.getString("name")} = ${doc.getDouble("value")} USD"
+                        val text = "1 ${doc.getString("name")} = $${doc.getDouble("value")}"
                         findViewById<TextView>(id).text = text
                     }
                 }
@@ -63,7 +63,7 @@ class MainActivity : AppCompatActivity() {
     private fun createDialog(currency: String){
         val view = LayoutInflater.from(this).inflate(R.layout.alert_layout,null)
         val dialog = AlertDialog.Builder(this)
-            .setTitle(R.string.set_limits)
+            .setTitle("Set limits for ${currency.toUpperCase()}")
             .setMessage(R.string.set_limits_intro)
             .setView(view)
             .create()

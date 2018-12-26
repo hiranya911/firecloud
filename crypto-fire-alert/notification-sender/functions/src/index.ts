@@ -11,7 +11,7 @@ export const sendCryptoAlerts = functions.firestore.document('prices/{currency}'
     .onUpdate(async (change, context) => {
         const currencyId: string = context.params.currency;
         const data = change.after.data();
-        const newPrice: number = data.price;
+        const newPrice: number = data.value;
         console.log(`Price of ${currencyId} changed to USD ${newPrice}`);
 
         const tokens = await findTargetDevices(currencyId, newPrice);
