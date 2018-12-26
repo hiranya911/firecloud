@@ -1,0 +1,4 @@
+cron:
+- description: "cryptocurrency price updater"
+  url: /fetch
+  schedule: every 30 minutes

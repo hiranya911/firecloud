@@ -1,0 +1,3 @@
+runtime: go111
+env_variables:
+  CRON_ONLY: "1"
