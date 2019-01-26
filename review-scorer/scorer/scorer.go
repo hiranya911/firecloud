@@ -31,11 +31,14 @@ type FirestoreValue struct {
 
 // Review represents the Firestore schema of a movie review.
 type Review struct {
-	Author string `json:"author"`
-	Text   string `json:"text"`
+	Author struct {
+		Value string `json:"stringValue"`
+	} `json:"author"`
+	Text struct {
+		Value string `json:"stringValue"`
+	} `json:"text"`
 }
 
-// client is a Firestore client, reused between function invocations.
 var client *db.Client
 
 func init() {
@@ -59,9 +62,9 @@ func init() {
 // Firebase Realtime Database.
 func ScoreReview(ctx context.Context, e FirestoreEvent) error {
 	review := e.Value.Fields
-	reviweScore := score(review.Text)
+	reviweScore := score(review.Text.Value)
 
-	ref := client.NewRef("scores").Child(review.Author)
+	ref := client.NewRef("scores").Child(review.Author.Value)
 	updateTxn := func(node db.TransactionNode) (interface{}, error) {
 		var currentScore int
 		if err := node.Unmarshal(&currentScore); err != nil {
