@@ -45,7 +45,7 @@ func init() {
 	ctx := context.Background()
 
 	conf := &firebase.Config{
-		DatabaseURL: "https://solarflares-f4bee.firebaseio.com/",
+		DatabaseURL: "https://<CHANGE_ME>.firebaseio.com/",
 	}
 	app, err := firebase.NewApp(ctx, conf)
 	if err != nil {
@@ -75,6 +75,9 @@ func ScoreReview(ctx context.Context, e FirestoreEvent) error {
 	return ref.Transaction(ctx, updateTxn)
 }
 
+// score computes the score for a review text.
+//
+// This is currently just the length of the text.
 func score(text string) int {
 	return len(text)
 }
