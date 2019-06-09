@@ -34,7 +34,7 @@ namespace CustomAuthService
             User user;
             if (!Users.TryGetValue(key, out user))
             {
-                throw new Exception("Incorrect username or passowrd");
+                throw new Exception("Incorrect username or password");
             }
 
             return Task.FromResult(user);
