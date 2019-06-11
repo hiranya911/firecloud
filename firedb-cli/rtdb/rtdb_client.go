@@ -43,6 +43,7 @@ func NewShell(ctx context.Context, url string) (*ishell.Shell, error) {
 
 	shell := ishell.New()
 	shell.Println("Firebase interactive shell")
+	shell.SetPrompt("/ >>> ")
 
 	shell.AddCmd(&ishell.Cmd{
 		Name: "version",
@@ -83,8 +84,8 @@ func NewShell(ctx context.Context, url string) (*ishell.Shell, error) {
 }
 
 func (s *rtdbShell) get(c *ishell.Context) {
-	showData := func(ctx context.Context, c *ishell.Context, child string, heading bool) error {
-		data, err := s.getData(ctx, child)
+	showData := func(child string, heading bool) error {
+		data, err := s.getData(child)
 		if err != nil {
 			return err
 		}
@@ -97,13 +98,13 @@ func (s *rtdbShell) get(c *ishell.Context) {
 		return nil
 	}
 
-	ctx := context.Background()
 	if len(c.Args) > 1 {
 		for idx, child := range c.Args {
 			if idx > 0 {
 				c.Println()
 			}
-			if err := showData(ctx, c, child, true); err != nil {
+
+			if err := showData(child, true); err != nil {
 				c.Println(err)
 				return
 			}
@@ -113,21 +114,21 @@ func (s *rtdbShell) get(c *ishell.Context) {
 		if len(c.Args) == 1 {
 			child = c.Args[0]
 		}
-		if err := showData(ctx, c, child, false); err != nil {
+		if err := showData(child, false); err != nil {
 			c.Println(err)
 			return
 		}
 	}
 }
 
-func (s *rtdbShell) getData(ctx context.Context, child string) (string, error) {
+func (s *rtdbShell) getData(child string) (string, error) {
 	target, err := s.getRef(child)
 	if err != nil {
 		return "", err
 	}
 
 	var i interface{}
-	if err := target.Get(ctx, &i); err != nil {
+	if err := target.Get(context.Background(), &i); err != nil {
 		return "", err
 	}
 
@@ -190,8 +191,11 @@ func (s *rtdbShell) cd(c *ishell.Context) {
 		return
 	}
 
-	if len(c.Args) == 0 && s.ref.Path != "/" {
-		s.ref = s.client.NewRef("/")
+	if len(c.Args) == 0 {
+		if s.ref.Path != "/" {
+			s.ref = s.client.NewRef("/")
+			c.SetPrompt(s.ref.Path + " >>> ")
+		}
 		return
 	}
 
@@ -202,6 +206,7 @@ func (s *rtdbShell) cd(c *ishell.Context) {
 	}
 
 	s.ref = target
+	c.SetPrompt(target.Path + " >>> ")
 }
 
 // getRef returns a Ref that corresponds to the given path. If the path
