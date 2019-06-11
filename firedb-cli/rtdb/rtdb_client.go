@@ -10,6 +10,7 @@ import (
 	firebase "firebase.google.com/go"
 	"firebase.google.com/go/db"
 	"github.com/abiosoft/ishell"
+	"github.com/abiosoft/readline"
 )
 
 type rtdbShell struct {
@@ -19,32 +20,12 @@ type rtdbShell struct {
 
 // NewShell creates a new RTDB shell.
 func NewShell(ctx context.Context, url string) (*ishell.Shell, error) {
-	var conf *firebase.Config
-	if url != "" {
-		conf = &firebase.Config{
-			DatabaseURL: url,
-		}
-	}
-
-	app, err := firebase.NewApp(ctx, conf)
+	s, err := newRTDBShell(ctx, url)
 	if err != nil {
 		return nil, err
 	}
 
-	client, err := app.Database(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	s := &rtdbShell{
-		client: client,
-		ref:    client.NewRef("/"),
-	}
-
-	shell := ishell.New()
-	shell.Println("Firebase interactive shell")
-	shell.SetPrompt("/ >>> ")
-
+	shell := newShellWithConfig(nil)
 	shell.AddCmd(&ishell.Cmd{
 		Name: "version",
 		Help: "Print version of the CLI",
@@ -60,9 +41,7 @@ func NewShell(ctx context.Context, url string) (*ishell.Shell, error) {
 	shell.AddCmd(&ishell.Cmd{
 		Name: "pwd",
 		Help: "Prints the path to the current location",
-		Func: func(c *ishell.Context) {
-			c.Println(s.ref.Path)
-		},
+		Func: s.pwd,
 	})
 	shell.AddCmd(&ishell.Cmd{
 		Name: "set",
@@ -80,7 +59,48 @@ func NewShell(ctx context.Context, url string) (*ishell.Shell, error) {
 		Func: s.cd,
 	})
 
+	shell.Println("Firebase interactive shell")
 	return shell, nil
+}
+
+func newRTDBShell(ctx context.Context, url string) (*rtdbShell, error) {
+	var conf *firebase.Config
+	if url != "" {
+		conf = &firebase.Config{
+			DatabaseURL: url,
+		}
+	}
+
+	app, err := firebase.NewApp(ctx, conf)
+	if err != nil {
+		return nil, err
+	}
+
+	client, err := app.Database(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return &rtdbShell{
+		client: client,
+		ref:    client.NewRef("/"),
+	}, nil
+}
+
+func newShellWithConfig(conf *readline.Config) *ishell.Shell {
+	var shell *ishell.Shell
+	if conf != nil {
+		shell = ishell.NewWithConfig(conf)
+	} else {
+		shell = ishell.New()
+	}
+
+	shell.SetPrompt("/ >>> ")
+	return shell
+}
+
+func (s *rtdbShell) pwd(c *ishell.Context) {
+	c.Println(s.ref.Path)
 }
 
 func (s *rtdbShell) get(c *ishell.Context) {
