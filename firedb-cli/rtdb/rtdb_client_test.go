@@ -2,27 +2,11 @@ package rtdb
 
 import (
 	"bytes"
-	"context"
-	"log"
-	"os"
 	"testing"
 
-	firebase "firebase.google.com/go"
-	"github.com/abiosoft/ishell"
+	"firebase.google.com/go/db"
 	"github.com/abiosoft/readline"
-	"google.golang.org/api/option"
 )
-
-var s *rtdbShell
-var err error
-
-func TestMain(m *testing.M) {
-	s, err = newRTDBShell(context.Background(), "https://test.firebaseio.com")
-	if err != nil {
-		log.Fatal(err)
-	}
-	os.Exit(m.Run())
-}
 
 func TestPwd(t *testing.T) {
 	var buf bytes.Buffer
@@ -31,17 +15,60 @@ func TestPwd(t *testing.T) {
 	}
 
 	shell := newShellWithConfig(conf)
-	s.pwd(&ishell.Context{
-		Actions: shell,
-	})
+	s := &rtdbShell{
+		ref: newRef(),
+	}
+	registerCommands(shell, s)
+	shell.Process("pwd")
 	if buf.String() != "/\n" {
 		t.Errorf("pwd = %q; want = %q", buf.String(), "/\n")
 	}
 }
 
-func newRef() (*firebase.App, error) {
-	conf := &firebase.Config{
-		DatabaseURL: "https://example-db.firebaseio.com",
+func TestCD(t *testing.T) {
+	var buf bytes.Buffer
+	conf := &readline.Config{
+		Stdout: &buf,
 	}
-	return firebase.NewApp(context.Background(), conf, option.WithTokenSource(nil))
+
+	shell := newShellWithConfig(conf)
+	s := &rtdbShell{
+		ref: newRef(),
+	}
+	registerCommands(shell, s)
+	shell.Process("cd", "foo")
+
+	if s.ref.Path() != "/foo" {
+		t.Errorf("cd = %q; want = %q", s.ref.Path(), "/foo")
+	}
+	shell.Process()
+}
+
+func newRef() Ref {
+	return &TestRef{
+		path: "/",
+	}
+}
+
+type TestRef struct {
+	path string
+	*db.Ref
+}
+
+func (r *TestRef) Path() string {
+	return r.path
+}
+
+func (r *TestRef) Child(path string) Ref {
+	return &TestRef{
+		path: r.path + path,
+	}
+}
+
+func (r *TestRef) Parent() Ref {
+	return nil
+}
+
+func (r *TestRef) FromPath(path string) Ref {
+	return nil
 }

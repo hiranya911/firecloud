@@ -13,9 +13,48 @@ import (
 	"github.com/abiosoft/readline"
 )
 
-type rtdbShell struct {
+type Ref interface {
+	Path() string
+	Get(ctx context.Context, v interface{}) error
+	Set(ctx context.Context, v interface{}) error
+	Delete(ctx context.Context) error
+	Parent() Ref
+	Child(path string) Ref
+	FromPath(path string) Ref
+}
+
+type FirebaseRef struct {
 	client *db.Client
-	ref    *db.Ref
+	*db.Ref
+}
+
+func (r *FirebaseRef) Path() string {
+	return r.Ref.Path
+}
+
+func (r *FirebaseRef) Child(path string) Ref {
+	return &FirebaseRef{
+		client: r.client,
+		Ref:    r.Ref.Child(path),
+	}
+}
+
+func (r *FirebaseRef) Parent() Ref {
+	return &FirebaseRef{
+		client: r.client,
+		Ref:    r.Ref.Parent(),
+	}
+}
+
+func (r *FirebaseRef) FromPath(path string) Ref {
+	return &FirebaseRef{
+		client: r.client,
+		Ref:    r.client.NewRef(path),
+	}
+}
+
+type rtdbShell struct {
+	ref Ref
 }
 
 // NewShell creates a new RTDB shell.
@@ -26,6 +65,13 @@ func NewShell(ctx context.Context, url string) (*ishell.Shell, error) {
 	}
 
 	shell := newShellWithConfig(nil)
+	registerCommands(shell, s)
+
+	shell.Println("Firebase interactive shell")
+	return shell, nil
+}
+
+func registerCommands(shell *ishell.Shell, s *rtdbShell) {
 	shell.AddCmd(&ishell.Cmd{
 		Name: "version",
 		Help: "Print version of the CLI",
@@ -58,9 +104,6 @@ func NewShell(ctx context.Context, url string) (*ishell.Shell, error) {
 		Help: "changes the current location",
 		Func: s.cd,
 	})
-
-	shell.Println("Firebase interactive shell")
-	return shell, nil
 }
 
 func newRTDBShell(ctx context.Context, url string) (*rtdbShell, error) {
@@ -82,8 +125,7 @@ func newRTDBShell(ctx context.Context, url string) (*rtdbShell, error) {
 	}
 
 	return &rtdbShell{
-		client: client,
-		ref:    client.NewRef("/"),
+		ref: &FirebaseRef{client: client, Ref: client.NewRef("/")},
 	}, nil
 }
 
@@ -100,7 +142,7 @@ func newShellWithConfig(conf *readline.Config) *ishell.Shell {
 }
 
 func (s *rtdbShell) pwd(c *ishell.Context) {
-	c.Println(s.ref.Path)
+	c.Println(s.ref.Path())
 }
 
 func (s *rtdbShell) get(c *ishell.Context) {
@@ -212,9 +254,9 @@ func (s *rtdbShell) cd(c *ishell.Context) {
 	}
 
 	if len(c.Args) == 0 {
-		if s.ref.Path != "/" {
-			s.ref = s.client.NewRef("/")
-			c.SetPrompt(s.ref.Path + " >>> ")
+		if s.ref.Path() != "/" {
+			s.ref = s.ref.FromPath("/")
+			c.SetPrompt(s.ref.Path() + " >>> ")
 		}
 		return
 	}
@@ -226,13 +268,13 @@ func (s *rtdbShell) cd(c *ishell.Context) {
 	}
 
 	s.ref = target
-	c.SetPrompt(target.Path + " >>> ")
+	c.SetPrompt(target.Path() + " >>> ")
 }
 
 // getRef returns a Ref that corresponds to the given path. If the path
 // is relative, it is calculated relative to the current node (s.ref). If
 // the path is empty, the current node is returned.
-func (s *rtdbShell) getRef(path string) (*db.Ref, error) {
+func (s *rtdbShell) getRef(path string) (Ref, error) {
 	target := s.ref
 	if path == "" {
 		return target, nil
@@ -240,13 +282,13 @@ func (s *rtdbShell) getRef(path string) (*db.Ref, error) {
 
 	segments := parsePath(path)
 	if len(segments) == 0 {
-		return s.client.NewRef("/"), nil
+		return s.ref.FromPath("/"), nil
 	}
 
 	for idx, seg := range segments {
 		if seg == "" {
 			if idx == 0 {
-				target = s.client.NewRef("/")
+				target = s.ref.FromPath("/")
 			}
 		} else if seg == "." {
 			continue
