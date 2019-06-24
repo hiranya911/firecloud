@@ -15,11 +15,12 @@ func main() {
 	app.Usage = "Start DB CLI shell"
 	app.Action = func(c *cli.Context) error {
 		url := c.Args().Get(0)
-		shell, err := rtdb.NewShell(context.Background(), url)
+		session, err := rtdb.NewSession(context.Background(), url)
 		if err != nil {
 			return cli.NewExitError(err, 1)
 		}
 
+		shell := rtdb.NewShell(session, nil)
 		shell.Run()
 		return nil
 	}
