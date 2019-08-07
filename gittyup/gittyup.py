@@ -1,130 +1,10 @@
+import datetime
 import itertools
 import re
 import textwrap
 
-import requests
-
-
-SCOPES = {
-  'fcm': 'Firebase Cloud Messaging',
-}
-
-
-class PullRequest(object):
-
-    def __init__(self, data):
-        self._data = data
-
-    @property
-    def title(self):
-        return self._data['title']
-
-    @property
-    def body(self):
-        return self._data['body']
-
-    @property
-    def number(self):
-        return self._data['number']
-
-    @property
-    def labels(self):
-        return [label['name'] for label in self._data['labels']]
-
-    @property
-    def is_release_note(self):
-        return 'release-note' in self.labels
-
-
-class ConventionalCommit(object):
-
-    PATTERN = re.compile(r'(?P<type>\w+)(\((?P<scope>\w+)\))?:\s+(?P<desc>.+)')
-
-    def __init__(self, pr_type, description, scope='', body=''):
-        self.type = pr_type
-        self._description = description
-        self._scope = scope
-        self.body = body
-
-    @property
-    def scope(self):
-        return SCOPES.get(self._scope, self._scope)
-
-    @property
-    def descriptions(self):
-        lines = self.body.splitlines()
-        descs = []
-        for line in lines:
-            if line.startswith('RELEASE NOTE:'):
-                descs.append(line[14:])
-
-        return descs if descs else [ self._description ]
-
-    @property
-    def _category(self):
-        if 'API CHANGE:' in self.body:
-            return '{{changed}}'
-        elif self.type == 'feat':
-            return '{{feature}}'
-        else:
-            return '{{fixed}}'
-
-    def get_release_notes(self):
-        return [
-          '{0} {1}'.format(self._category, with_full_stop(desc))
-          for desc in self.descriptions
-        ]
-
-
-    @staticmethod
-    def parse_pull_request(pull):
-        title_match = ConventionalCommit.PATTERN.search(pull.title)
-        if title_match:
-            return ConventionalCommit(
-                title_match.group('type'),
-                title_match.group('desc'),
-                title_match.group('scope'),
-                pull.body)
-
-        return ConventionalCommit('fix', pull.title, body=pull.body)
-
-
-def get_page(repo, page_number=1, base_branch='master'):
-    url = 'https://api.github.com/repos/{0}/pulls'.format(repo)
-    params = {
-      'state': 'closed',
-      'base': base_branch,
-      'page': page_number,
-    }
-    response = requests.get(url, params=params)
-    response.raise_for_status()
-    return response.json()
-
-
-def find_pulls_since_last_release(repo):
-    page_number = 1
-    pulls = []
-    proceed = True
-    while proceed:
-        page = [PullRequest(pull) for pull in get_page(repo, page_number)]
-        if not page:
-            proceed = False
-            continue
-
-        filtered = []
-        for pull in page:
-            if pull.title.startswith('Bumped version to'):
-                proceed = False
-                break
-            filtered.append(pull)
-        pulls.extend(filtered)
-        page_number += 1
-
-    return pulls
-
-
-def with_full_stop(message):
-    return message if message.endswith('.') else '{0}.'.format(message)
+import github
+import releasenotes
 
 
 def wrap_lines(message, max_length=80):
@@ -133,25 +13,64 @@ def wrap_lines(message, max_length=80):
     return '\n'.join([wrapped[0]] + indented)
 
 
+def group_by_heading(notes):
+    grouped_notes = {}
+    for key, group in itertools.groupby(notes, lambda p : p.heading):
+        if key not in grouped_notes:
+            grouped_notes[key] = []
+        for commit in group:
+            grouped_notes[key].append(commit)
+    return grouped_notes
+
+
+def estimate_next_version(repo, notes):
+    version = github.find_last_release(repo)
+    major, minor, patch = version.major, version.minor, version.patch
+    if any([note.category == releasenotes.Category.CHANGED for note in notes]):
+        major += 1
+    elif any([note.category == releasenotes.Category.FEATURE for note in notes]):
+        minor += 1
+    else:
+        patch += 1
+    return '{0}.{1}.{2}'.format(major, minor, patch)
+
+
+def estimate_release_date():
+    today = datetime.datetime.now()
+    tomorrow = today + datetime.timedelta(days=1)
+    return tomorrow.strftime('%d %B, %Y')
+
+
 if __name__ == '__main__':
     repo = 'firebase/firebase-admin-dotnet'
-    pulls = [ pull for pull in find_pulls_since_last_release(repo) if pull.is_release_note ]
-    parsed_commits = [ ConventionalCommit.parse_pull_request(pull) for pull in pulls ]
-    grouped_commits = {}
-    for key, group in itertools.groupby(parsed_commits, lambda p : p.scope):
-        if key not in grouped_commits:
-            grouped_commits[key] = []
-        for commit in group:
-            grouped_commits[key].append(commit)
+    pulls = github.find_pulls_since_last_release(repo)
+    notes = releasenotes.get_release_notes_from_pulls(pulls)
+    grouped_notes = group_by_heading(notes)
 
-    print('## <a name="1.8.0">Version 1.8.0 - August 07, 2019</a>')
+    next_version = estimate_next_version(repo, notes)
+    release_date = estimate_release_date()
+    print('Devsite release notes')
+    print('## <a name="{0}">Version {0} - {1}</a>'.format(next_version, release_date))
     print()
-    for key in sorted(grouped_commits.keys()):
+    for key in sorted(grouped_notes.keys()):
         if key:
             print('### {0}'.format(key))
             print()
 
-        for commit in grouped_commits[key]:
-            for note in commit.get_release_notes():
-              print('- {0}'.format(wrap_lines(note)))
+        for commit in grouped_notes[key]:
+            note = commit.get_devsite_text()
+            print('- {0}'.format(wrap_lines(note)))
+        print()
+
+    print('\n\nGithub release notes')
+    print('## <a name="{0}">Version {0} - {1}</a>'.format(next_version, release_date))
+    print()
+    for key in sorted(grouped_notes.keys()):
+        if key:
+            print('### {0}'.format(key))
+            print()
+
+        for commit in grouped_notes[key]:
+            note = commit.get_github_text()
+            print('- {0}'.format(note))
         print()
