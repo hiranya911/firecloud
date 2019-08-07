@@ -22,12 +22,12 @@ class PullRequest(object):
         return [label['name'] for label in self._data['labels']]
 
     @property
-    def is_release_note(self):
+    def has_release_notes(self):
         return 'release-note' in self.labels
 
 
 def _has_title_prefix(pull):
-    return pull.title.startswith('Bumped version to')
+    return pull.number == 82
 
 
 def _get_page(repo, page_number=1, base_branch='master'):
@@ -42,7 +42,7 @@ def _get_page(repo, page_number=1, base_branch='master'):
     return response.json()
 
 
-def _find_all_pulls_since_last_release(repo, is_last_release):
+def find_pulls_since_last_release(repo, is_last_release=_has_title_prefix):
     pulls = []
     proceed = True
     page_number = 1
@@ -62,11 +62,6 @@ def _find_all_pulls_since_last_release(repo, is_last_release):
         page_number += 1
 
     return pulls
-
-
-def find_pulls_since_last_release(repo, is_last_release=_has_title_prefix):
-    all_pulls = _find_all_pulls_since_last_release(repo, is_last_release)
-    return [ pull for pull in all_pulls if pull.is_release_note ]
 
 
 class SemVer(object):
