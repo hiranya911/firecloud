@@ -5,11 +5,6 @@ import github
 import releasenotes
 
 
-def _estimate_next_version(notes):
-    last_version = github.find_last_release(repo)
-    return releasenotes.estimate_next_version(last_version, notes)
-
-
 if __name__ == '__main__':
     repo = 'firebase/firebase-admin-dotnet'
     pulls = [ pull for pull in github.find_pulls_since_last_release(repo) if pull.has_release_notes ]
@@ -24,12 +19,12 @@ if __name__ == '__main__':
         notes.extend(releasenotes.get_release_notes_from_pull(pull))
     print()
 
-    next_version = _estimate_next_version(notes)
+    last_version = github.find_last_release(repo)
 
     print('Devsite release notes')
     print('=====================')
-    print(formatters.DevsiteFormatter(next_version).printable_output(notes))
+    print(formatters.DevsiteFormatter(notes, last_version).printable_output())
 
     print('Github release notes')
     print('====================')
-    print(formatters.GitHubFormatter(next_version).printable_output(notes))
+    print(formatters.GitHubFormatter(notes, last_version).printable_output())

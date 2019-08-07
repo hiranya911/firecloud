@@ -2,13 +2,16 @@ import datetime
 import itertools
 import textwrap
 
-import releasenotes
-
 
 _FIRE_SITE_URL = 'https://firebase.google.com'
 
 
 class ReleaseNoteFormatter(object):
+
+    def __init__(self, notes, last_version=None, next_version=None):
+        self.notes = notes
+        self._last_version = last_version
+        self._next_version = next_version
 
     def header(self):
         raise NotImplementedError
@@ -22,8 +25,8 @@ class ReleaseNoteFormatter(object):
     def format_section_footer(self, title):
         raise NotImplementedError
 
-    def printable_output(self, notes):
-        grouped_notes = ReleaseNoteFormatter._group_by_section(notes)
+    def printable_output(self):
+        grouped_notes = ReleaseNoteFormatter._group_by_section(self.notes)
 
         result = self.header()
         for title in sorted(grouped_notes.keys()):
@@ -35,6 +38,22 @@ class ReleaseNoteFormatter(object):
                 result += '- {0}'.format(note_text)
             result += self.format_section_footer(title)
         return result
+
+    def _find_next_version(self):
+        if self._next_version:
+            return self._next_version
+        if not self._last_version:
+            raise ValueError('Either next_version or last_version must be specified')
+
+        major, minor, patch = self._last_version.major, self._last_version.minor, self._last_version.patch
+        if any([note.is_change for note in self.notes]):
+            major += 1
+        elif any([note.is_feature for note in self.notes]):
+            minor += 1
+        else:
+            patch += 1
+        return '{0}.{1}.{2}'.format(major, minor, patch)
+
 
     @classmethod
     def _group_by_section(cls, notes):
@@ -54,15 +73,16 @@ class DevsiteFormatter(ReleaseNoteFormatter):
         'fcm': '{{messaging_longer}}'
     }
 
-    def __init__(self, next_version):
-        self._next_version = next_version
+    def __init__(self, notes, last_version):
+        super().__init__(notes, last_version)
 
     def header(self):
+        next_version = self._find_next_version()
         release_date = DevsiteFormatter._estimate_release_date()
-        return '## <a name="{0}">Version {0} - {1}</a>\n\n'.format(self._next_version, release_date)
+        return '## <a name="{0}">Version {0} - {1}</a>\n\n'.format(next_version, release_date)
 
     def format_note(self, note):
-        note_type = DevsiteFormatter._note_type(note.type)
+        note_type = DevsiteFormatter._note_type(note)
         desc = _with_full_stop(DevsiteFormatter._ensure_relative_urls(note.description))
         result = '{0} {1}'.format(note_type, desc)
         return DevsiteFormatter._wrap(result)
@@ -75,10 +95,10 @@ class DevsiteFormatter(ReleaseNoteFormatter):
         return '\n'
 
     @classmethod
-    def _note_type(cls, note_type):
-      if note_type == releasenotes.NoteType.FEATURE:
+    def _note_type(cls, note):
+      if note.is_feature:
         return '{{feature}}'
-      elif note_type == releasenotes.NoteType.CHANGED:
+      elif note.is_change:
           return '{{changed}}'
       else:
           return '{{fixed}}'
@@ -124,14 +144,15 @@ class GitHubFormatter(ReleaseNoteFormatter):
         'fcm': 'Cloud Messaging'
     }
 
-    def __init__(self, next_version):
-        self._next_version = next_version
+    def __init__(self, notes, last_version):
+      super().__init__(notes, last_version)
 
     def header(self):
-        return '{0}\n\n'.format(self._next_version)
+        next_version = self._find_next_version()
+        return '{0}\n\n'.format(next_version)
 
     def format_note(self, note):
-        note_type = GitHubFormatter._note_type(note.type)
+        note_type = GitHubFormatter._note_type(note)
         desc = _with_full_stop(GitHubFormatter._ensure_absolute_urls(note.description))
         return '{0} {1}\n'.format(note_type, desc)
 
@@ -143,10 +164,10 @@ class GitHubFormatter(ReleaseNoteFormatter):
         return '\n'
 
     @classmethod
-    def _note_type(cls, note_type):
-      if note_type == releasenotes.NoteType.FEATURE:
+    def _note_type(cls, note):
+      if note.is_feature:
         return '[Feature]'
-      elif note_type == releasenotes.NoteType.CHANGED:
+      elif note.is_change:
           return '[Changed]'
       else:
           return '[Fixed]'

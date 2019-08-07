@@ -1,4 +1,20 @@
 import requests
+import json
+
+
+class User(object):
+
+    def __init__(self, data):
+        self._data = data
+
+    @property
+    def login(self):
+        return self._data['login']
+
+    @property
+    def html_url(self):
+        return self._data['html_url']
+
 
 class PullRequest(object):
 
@@ -24,6 +40,14 @@ class PullRequest(object):
     @property
     def has_release_notes(self):
         return 'release-note' in self.labels
+
+    @property
+    def is_contribution(self):
+        return self._data['author_association'] == 'CONTRIBUTOR'
+
+    @property
+    def user(self):
+        return User(self_data['user'])
 
 
 def _has_title_prefix(pull):

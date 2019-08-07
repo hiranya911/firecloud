@@ -17,6 +17,18 @@ class ReleaseNote(object):
         self.description = description
         self.section = section
 
+    @property
+    def is_feature(self):
+        return self.type == NoteType.FEATURE
+
+    @property
+    def is_fix(self):
+        return self.type == NoteType.FIXED
+
+    @property
+    def is_change(self):
+        return self.type == NoteType.CHANGED
+
 
 class Source(object):
 
@@ -104,14 +116,3 @@ class ConventionalPullRequestMessage(PullRequestMessage):
 def get_release_notes_from_pull(pull):
     source = Source.from_pull_request(pull)
     return source.get_release_notes()
-
-
-def estimate_next_version(last_version, notes):
-    major, minor, patch = last_version.major, last_version.minor, last_version.patch
-    if any([note.type == NoteType.CHANGED for note in notes]):
-        major += 1
-    elif any([note.type == NoteType.FEATURE for note in notes]):
-        minor += 1
-    else:
-        patch += 1
-    return '{0}.{1}.{2}'.format(major, minor, patch)
