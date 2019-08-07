@@ -1,4 +1,20 @@
+import datetime
+import itertools
 import re
+
+
+_DEFAULT_SECTION = ''
+_SECTIONS = {
+    'auth': '{{auth}}',
+    'fcm': '{{messaging_longer}}'
+}
+
+_REPLACEMENTS = {
+    '{{feature}}': '[Feature]',
+    '{{fixed}}': '[Fixed]',
+    '{{messaging_longer}}': 'Firebase Cloud Messaging',
+}
+_FIRE_SITE_URL = 'https://firebase.google.com'
 
 
 class Category(object):
@@ -16,52 +32,24 @@ class Category(object):
             return '{{fixed}}'
 
 
-class _Heading(object):
-
-    NONE = 1
-    FCM = 2
-    AUTH = 3
-
-    _HEADING_MAP = {
-        NONE: '',
-        AUTH: '{{auth}}',
-        FCM: '{{messaging_longer}}',
-    }
-
-    @classmethod
-    def text(cls, heading):
-        return cls._HEADING_MAP[heading]
-
-
-_REPLACEMENTS = {
-    '{{feature}}': '[Feature]',
-    '{{fixed}}': '[Fixed]',
-}
-
-
 class ReleaseNote(object):
 
-    def __init__(self, heading, category, description):
-        self.heading = _Heading.text(heading)
+    def __init__(self, category, description, section=''):
         self.category = category
         self.description = description
+        self.section = section
 
     def get_devsite_text(self):
-        return '{0} {1}'.format(Category.text(self.category), _with_full_stop(self.description))
-
-    def get_github_text(self):
-        text = self.get_devsite_text()
-        for key, value in _REPLACEMENTS.items():
-            text = text.replace(key, value)
-        return ReleaseNote.fix_urls(text)
+        desc = _with_full_stop(ReleaseNote._rewrite_url(self.description))
+        return '{0} {1}'.format(Category.text(self.category), desc)
 
     @classmethod
-    def fix_urls(cls, text):
-        idx = text.find('](/')
+    def _rewrite_url(cls, text):
+        marker = ']({0}/'.format(_FIRE_SITE_URL)
+        idx = text.find(marker)
         while idx != -1:
-            text = text[:idx + 1] + '(https://firebase.google.com' + text[idx + 2:]
-            idx += 25
-            idx = text.find('](/', idx)
+            text = text[:idx + 2] + text[idx + 2 + len(_FIRE_SITE_URL):]
+            idx = text.find(marker, idx)
         return text
 
 
@@ -71,16 +59,12 @@ class Source(object):
         raise NotImplementedError
 
     @staticmethod
-    def parse_pull_request(pull):
-        title_match = ConventionalPullRequestMessage.PATTERN.search(pull.title)
-        if title_match:
-            return ConventionalPullRequestMessage(
-                title_match.group('desc'),
-                pull.body,
-                title_match.group('type'),
-                title_match.group('scope'))
+    def from_pull_request(pull):
+        source = ConventionalPullRequestMessage.from_pull_request(pull)
+        if not source:
+            source = PullRequestMessage(pull.title, pull.body)
 
-        return PullRequestMessage(pull.title, pull.body)
+        return source
 
 
 class PullRequestMessage(Source):
@@ -90,8 +74,8 @@ class PullRequestMessage(Source):
         self._body = body
 
     @property
-    def _heading(self):
-        return _Heading.NONE
+    def _section(self):
+        return _DEFAULT_SECTION
 
     @property
     def _category(self):
@@ -112,7 +96,7 @@ class PullRequestMessage(Source):
 
     def get_release_notes(self):
         return [
-          ReleaseNote(self._heading, self._category, _with_full_stop(desc))
+          ReleaseNote(self._category, _with_full_stop(desc), self._section)
           for desc in self._descriptions
         ]
 
@@ -127,13 +111,8 @@ class ConventionalPullRequestMessage(PullRequestMessage):
         self._scope = scope
 
     @property
-    def _heading(self):
-        if self._scope == 'fcm':
-            return _Heading.FCM
-        elif self._scope == 'auth':
-            return _Heading.AUTH
-        else:
-            return _Heading.NONE
+    def _section(self):
+        return _SECTIONS.get(self._scope, _DEFAULT_SECTION)
 
     @property
     def _category(self):
@@ -145,9 +124,20 @@ class ConventionalPullRequestMessage(PullRequestMessage):
         else:
             return Category.FIXED
 
+    @staticmethod
+    def from_pull_request(pull):
+        title_match = ConventionalPullRequestMessage.PATTERN.search(pull.title)
+        if title_match:
+            return ConventionalPullRequestMessage(
+                title_match.group('desc'),
+                pull.body,
+                title_match.group('type'),
+                title_match.group('scope'))
+        return None
+
 
 def get_release_notes_from_pulls(pulls):
-    sources = [ Source.parse_pull_request(pull) for pull in pulls ]
+    sources = [ Source.from_pull_request(pull) for pull in pulls ]
     note_lists = [ source.get_release_notes() for source in sources ]
     return [ note for notes in note_lists for note in notes ]
 
@@ -155,3 +145,58 @@ def get_release_notes_from_pulls(pulls):
 def _with_full_stop(message):
     return message if message.endswith('.') else '{0}.'.format(message)
 
+def _group_by_section(notes):
+    grouped_notes = {}
+    for key, group in itertools.groupby(notes, lambda p : p.section):
+        if key not in grouped_notes:
+            grouped_notes[key] = []
+        for note in group:
+            grouped_notes[key].append(note)
+    return grouped_notes
+
+
+def generate_for_devsite(notes):
+    grouped_notes = _group_by_section(notes)
+
+    result = ''
+    for key in sorted(grouped_notes.keys()):
+        if key:
+            result += '### {0}\n\n'.format(key)
+
+        for commit in grouped_notes[key]:
+            note = commit.get_devsite_text()
+            result += '- {0}\n'.format(note)
+        result += '\n'
+    return result
+
+
+def get_github_text(text):
+    for key, value in _REPLACEMENTS.items():
+        text = text.replace(key, value)
+    return _fix_urls(text)
+
+
+def _fix_urls(text):
+    idx = text.find('](/')
+    while idx != -1:
+        text = text[:idx + 2] + _FIRE_SITE_URL + text[idx + 2:]
+        idx += len(_FIRE_SITE_URL)
+        idx = text.find('](/', idx)
+    return text
+
+
+def estimate_next_version(last_version, notes):
+    major, minor, patch = last_version.major, last_version.minor, last_version.patch
+    if any([note.category == Category.CHANGED for note in notes]):
+        major += 1
+    elif any([note.category == Category.FEATURE for note in notes]):
+        minor += 1
+    else:
+        patch += 1
+    return '{0}.{1}.{2}'.format(major, minor, patch)
+
+
+def estimate_release_date():
+    today = datetime.datetime.now()
+    tomorrow = today + datetime.timedelta(days=1)
+    return tomorrow.strftime('%d %B, %Y')
