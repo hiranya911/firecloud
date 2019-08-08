@@ -7,7 +7,7 @@ import releasenotes
 
 if __name__ == '__main__':
     repo = 'firebase/firebase-admin-dotnet'
-    pulls = [ pull for pull in github.find_pulls_since_last_release(repo) if pull.has_release_notes ]
+    pulls = [ pull for pull in github.pulls_since_last_release(repo) if pull.has_release_notes ]
     if not pulls:
         print('Could not find any pull requests labeled with release-notes')
         sys.exit(1)
@@ -19,7 +19,7 @@ if __name__ == '__main__':
         notes.extend(releasenotes.get_release_notes_from_pull(pull))
     print()
 
-    last_version = github.find_last_release(repo)
+    last_version = github.last_release(repo)
 
     print('Devsite release notes')
     print('=====================')

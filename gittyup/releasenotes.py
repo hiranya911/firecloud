@@ -43,28 +43,20 @@ class Source(object):
     def get_release_notes(self):
         raise NotImplementedError
 
-    @staticmethod
-    def from_pull_request(pull):
-        source = ConventionalPullRequestMessage.from_pull_request(pull)
-        if not source:
-            source = PullRequestMessage(pull)
-
-        return source
-
 
 class PullRequestMessage(Source):
 
     def __init__(self, pull):
         self._pull = pull
-        self._title = pull.title
         self._body = pull.body
+        self.title = pull.title
 
     @property
-    def _section(self):
+    def section(self):
         return _DEFAULT_SECTION
 
     @property
-    def _type(self):
+    def note_type(self):
         lines = self._body.splitlines()
         if any([line.startswith('API CHANGE:') for line in lines]):
             return NoteType.CHANGED
@@ -78,12 +70,12 @@ class PullRequestMessage(Source):
             if line.startswith('RELEASE NOTE:'):
                 descs.append(line[14:].strip())
 
-        return descs if descs else [ self._title ]
+        return descs if descs else [ self.title ]
 
     def get_release_notes(self):
         attribution = Attribution(self._pull) if self._pull.is_contribution else None
         return [
-          ReleaseNote(self._type, desc, self._section, attribution)
+          ReleaseNote(self.note_type, desc, self.section, attribution)
           for desc in self._descriptions
         ]
 
@@ -94,17 +86,17 @@ class ConventionalPullRequestMessage(PullRequestMessage):
 
     def __init__(self, pull, title, pr_type, scope=None):
         super().__init__(pull)
-        self._title = title
+        self.title = title
         self._pr_type = pr_type
         self._scope = scope
 
     @property
-    def _section(self):
+    def section(self):
         return self._scope or _DEFAULT_SECTION
 
     @property
-    def _type(self):
-        note_type = PullRequestMessage._type.fget(self)
+    def note_type(self):
+        note_type = PullRequestMessage.note_type.fget(self)
         if note_type != NoteType.FIXED:
             return note_type
         elif self._pr_type == 'feat':
@@ -112,9 +104,9 @@ class ConventionalPullRequestMessage(PullRequestMessage):
         else:
             return NoteType.FIXED
 
-    @staticmethod
-    def from_pull_request(pull):
-        title_match = ConventionalPullRequestMessage.PATTERN.search(pull.title)
+    @classmethod
+    def from_pull_request(cls, pull):
+        title_match = cls.PATTERN.search(pull.title)
         if title_match:
             return ConventionalPullRequestMessage(
                 pull,
@@ -124,6 +116,14 @@ class ConventionalPullRequestMessage(PullRequestMessage):
         return None
 
 
+def _source_from_pull_request(pull):
+    source = ConventionalPullRequestMessage.from_pull_request(pull)
+    if not source:
+        source = PullRequestMessage(pull)
+
+    return source
+
+
 def get_release_notes_from_pull(pull):
-    source = Source.from_pull_request(pull)
+    source = _source_from_pull_request(pull)
     return source.get_release_notes()

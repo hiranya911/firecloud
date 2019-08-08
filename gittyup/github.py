@@ -70,7 +70,7 @@ def _get_page(repo, page_number=1, base_branch='master'):
     return response.json()
 
 
-def find_pulls_since_last_release(repo, is_last_release=_has_title_prefix):
+def pulls_since_last_release(repo, is_last_release=_has_title_prefix):
     pulls = []
     proceed = True
     page_number = 1
@@ -97,22 +97,22 @@ class SemVer(object):
     def __init__(self, tag_name):
         if tag_name.startswith('v'):
             tag_name = tag_name[1:]
-        self._segments = tag_name.split('.')
+        self.segments = [ int(x) for x in tag_name.split('.') ]
 
     @property
     def major(self):
-        return int(self._segments[0])
+        return self.segments[0]
 
     @property
     def minor(self):
-        return int(self._segments[1])
+        return self.segments[1]
 
     @property
     def patch(self):
-        return int(self._segments[2])
+        return self.segments[2]
 
 
-def find_last_release(repo):
+def last_release(repo):
     url = 'https://api.github.com/repos/{0}/releases'.format(repo)
     response = requests.get(url)
     response.raise_for_status()
