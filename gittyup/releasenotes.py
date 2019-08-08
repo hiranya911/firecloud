@@ -116,6 +116,20 @@ class ConventionalPullRequestMessage(PullRequestMessage):
         return None
 
 
+def find_next_version(last_version, notes):
+    if not last_version:
+        raise ValueError('last_version must be specified')
+
+    major, minor, patch = last_version.segments
+    if any([note.is_change for note in notes]):
+        major += 1
+    elif any([note.is_feature for note in notes]):
+        minor += 1
+    else:
+        patch += 1
+    return '{0}.{1}.{2}'.format(major, minor, patch)
+
+
 def _source_from_pull_request(pull):
     source = ConventionalPullRequestMessage.from_pull_request(pull)
     if not source:

@@ -1,4 +1,5 @@
 import argparse
+import datetime
 import sys
 
 import formatters
@@ -35,22 +36,44 @@ def _extract_release_notes(repo):
     return notes
 
 
-def run(repo):
+def _estimate_version(last_version, notes):
+    def next_version():
+        return releasenotes.find_next_version(last_version, notes)
+    return next_version
+
+
+def _constant_version(version):
+    def next_version():
+        return version
+    return next_version
+
+
+def run(repo, version=None, date=None):
     notes = _extract_release_notes(repo)
     last_version = github.last_release(repo)
+    next_version = _constant_version(version) if version else _estimate_version(last_version, notes)
+    release_date = None
+    if date:
+        release_date = datetime.datetime.strptime(date, '%Y-%m-%d')
 
     print('Devsite release notes')
     print('=====================')
-    print(formatters.DevsiteFormatter(notes, last_version).printable_output())
+    print(formatters.DevsiteFormatter(notes, next_version, release_date).printable_output())
 
     print('Github release notes')
     print('====================')
-    print(formatters.GitHubFormatter(notes, last_version).printable_output())
+    print(formatters.GitHubFormatter(notes, next_version).printable_output())
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Generate release notes for GitHub repo.')
-    parser.add_argument('repo')
+    parser.add_argument(
+        'repo', metavar='REPO', help='Name of the Github repo in "organization/repo-name" format.')
+    parser.add_argument(
+        '--next-version', help='The next semver version to be included in release notes.')
+    parser.add_argument(
+        '--date', help='Release date to be included in release notes in yyyy-mm-dd format.')
+
     args = parser.parse_args()
 
     if not args.repo:
@@ -58,4 +81,4 @@ if __name__ == '__main__':
         parser.print_usage()
         sys.exit(1)
 
-    run(args.repo)
+    run(args.repo, args.next_version, args.date)

@@ -8,10 +8,8 @@ _FIRE_SITE_URL = 'https://firebase.google.com'
 
 class ReleaseNoteFormatter(object):
 
-    def __init__(self, notes, last_version=None, next_version=None):
+    def __init__(self, notes):
         self._notes = notes
-        self._last_version = last_version
-        self._next_version = next_version
 
     def header(self):
         raise NotImplementedError
@@ -39,21 +37,6 @@ class ReleaseNoteFormatter(object):
             result += self.section_footer(title)
         return result
 
-    def _find_next_version(self):
-        if self._next_version:
-            return self._next_version
-        if not self._last_version:
-            raise ValueError('Either next_version or last_version must be specified')
-
-        major, minor, patch = self._last_version.segments
-        if any([note.is_change for note in self._notes]):
-            major += 1
-        elif any([note.is_feature for note in self._notes]):
-            minor += 1
-        else:
-            patch += 1
-        return '{0}.{1}.{2}'.format(major, minor, patch)
-
     @staticmethod
     def _group_by_section(notes):
         grouped_notes = {}
@@ -73,14 +56,14 @@ class DevsiteFormatter(ReleaseNoteFormatter):
     }
     _DATE_FORMAT = '%d %B, %Y'
 
-    def __init__(self, notes, last_version, release_date=None):
-        super().__init__(notes, last_version)
+    def __init__(self, notes, next_version, release_date=None):
+        super().__init__(notes)
+        self._next_version = next_version
         self._release_date = release_date
 
     def header(self):
-        next_version = self._find_next_version()
         release_date = self._estimate_release_date()
-        return '## <a name="{0}">Version {0} - {1}</a>\n\n'.format(next_version, release_date)
+        return '## <a name="{0}">Version {0} - {1}</a>\n\n'.format(self._next_version(), release_date)
 
     def note(self, note):
         note_type = DevsiteFormatter._note_type(note)
@@ -147,12 +130,12 @@ class GitHubFormatter(ReleaseNoteFormatter):
         'fcm': 'Cloud Messaging'
     }
 
-    def __init__(self, notes, last_version):
-      super().__init__(notes, last_version)
+    def __init__(self, notes, next_version):
+      super().__init__(notes)
+      self._next_version = next_version
 
     def header(self):
-        next_version = self._find_next_version()
-        return '{0}\n\n'.format(next_version)
+        return '{0}\n\n'.format(self._next_version())
 
     def note(self, note):
         note_type = GitHubFormatter._note_type(note)
