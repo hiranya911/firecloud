@@ -7,20 +7,21 @@ import github
 import releasenotes
 
 
-def _extract_release_notes(repo):
+def _extract_release_notes(repo, branch=None):
     print('Analyzing GitHub history in https://github.com/{0}\n'.format(repo))
-    pulls = github.pulls_since_last_release(repo)
+    pulls = github.pulls_since_last_release(repo, branch)
     if not pulls:
         print('No new pull requests since the last release.')
         sys.exit(1)
 
     filtered_pulls = []
     notes = []
-    pr_num_len = len(str(pulls[0].number)) + 1
+    pr_num_len = len(str(pulls[0].number))
     for pull in pulls:
+        pr_desc = '[{0}] {1}'.format(pull.base_branch, pull.title)
         pr_info = '{0}: {1}'.format(
             formatters.truncate_or_pad(str(pull.number), pr_num_len),
-            formatters.truncate_or_pad(pull.title, 60))
+            formatters.truncate_or_pad(pr_desc, 60))
         if pull.has_release_notes:
             print('{0}  [RELEASE NOTES]'.format(pr_info))
             filtered_pulls.append(pull)
@@ -36,8 +37,8 @@ def _extract_release_notes(repo):
     return notes
 
 
-def run(repo, version=None, date=None):
-    notes = _extract_release_notes(repo)
+def run(repo, branch=None, version=None, date=None):
+    notes = _extract_release_notes(repo, branch)
     if not version:
         last_version = github.last_release(repo)
         version = releasenotes.find_next_version(last_version, notes)
@@ -67,6 +68,11 @@ if __name__ == '__main__':
         '--next-version', help='The next semver version to be included in release notes.')
     parser.add_argument(
         '--date', help='Release date to be included in release notes in yyyy-mm-dd format.')
+    parser.add_argument(
+        '--branch',
+        default='master',
+        help=('Name of the branch to scan for pull requests. Defaults to master. Use * to'
+              ' consider all branches.'))
 
     args = parser.parse_args()
 
@@ -75,4 +81,8 @@ if __name__ == '__main__':
         parser.print_usage()
         sys.exit(1)
 
-    run(args.repo, args.next_version, args.date)
+    branch = args.branch
+    if branch == '*':
+        branch = None
+
+    run(args.repo, branch, args.next_version, args.date)

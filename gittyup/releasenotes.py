@@ -46,6 +46,9 @@ class Source(object):
 
 class PullRequestMessage(Source):
 
+    _API_CHANGE = 'API CHANGE:'
+    _RELEASE_NOTE = 'RELEASE NOTE:'
+
     def __init__(self, pull):
         self._pull = pull
         self._body = pull.body
@@ -58,7 +61,7 @@ class PullRequestMessage(Source):
     @property
     def note_type(self):
         lines = self._body.splitlines()
-        if any([line.startswith('API CHANGE:') for line in lines]):
+        if any([line.startswith(PullRequestMessage._API_CHANGE) for line in lines]):
             return NoteType.CHANGED
         return NoteType.FIXED
 
@@ -67,8 +70,10 @@ class PullRequestMessage(Source):
         lines = self._body.splitlines()
         descs = []
         for line in lines:
-            if line.startswith('RELEASE NOTE:'):
-                descs.append(line[14:].strip())
+            if line.startswith(PullRequestMessage._RELEASE_NOTE):
+                descs.append(line[len(PullRequestMessage._RELEASE_NOTE):].strip())
+            if line.startswith(PullRequestMessage._API_CHANGE):
+                descs.append(line[len(PullRequestMessage._API_CHANGE):].strip())
 
         return descs if descs else [ self.title ]
 

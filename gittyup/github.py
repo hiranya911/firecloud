@@ -53,29 +53,35 @@ class PullRequest(object):
     def url(self):
         return self._data['html_url']
 
+    @property
+    def base_branch(self):
+        return self._data['base']['ref']
+
 
 def _has_title_prefix(pull):
+    #return pull.title.startswith('Bumped version to')
     return pull.number == 82
 
 
-def _get_page(repo, page_number=1, base_branch='master'):
+def _get_page(repo, page_number=1, base_branch=None):
     url = 'https://api.github.com/repos/{0}/pulls'.format(repo)
     params = {
       'state': 'closed',
-      'base': base_branch,
       'page': page_number,
     }
+    if base_branch:
+        params['base'] = base_branch
     response = requests.get(url, params=params)
     response.raise_for_status()
     return response.json()
 
 
-def pulls_since_last_release(repo, is_last_release=_has_title_prefix):
+def pulls_since_last_release(repo, base_branch=None, is_last_release=_has_title_prefix):
     pulls = []
     proceed = True
     page_number = 1
     while proceed:
-        page = [PullRequest(pull) for pull in _get_page(repo, page_number)]
+        page = [PullRequest(pull) for pull in _get_page(repo, page_number, base_branch)]
         if not page:
             proceed = False
             continue
