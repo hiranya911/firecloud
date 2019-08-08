@@ -32,37 +32,31 @@ def _extract_release_notes(repo):
         print('Could not find any pull requests labeled with release-notes.')
         sys.exit(1)
 
-    print('\nExtracted release notes from {0} pull requests.\n'.format(len(filtered_pulls)))
+    print('\nExtracted release notes from {0} pull requests.'.format(len(filtered_pulls)))
     return notes
-
-
-def _estimate_version(last_version, notes):
-    def next_version():
-        return releasenotes.find_next_version(last_version, notes)
-    return next_version
-
-
-def _constant_version(version):
-    def next_version():
-        return version
-    return next_version
 
 
 def run(repo, version=None, date=None):
     notes = _extract_release_notes(repo)
-    last_version = github.last_release(repo)
-    next_version = _constant_version(version) if version else _estimate_version(last_version, notes)
+    if not version:
+        last_version = github.last_release(repo)
+        version = releasenotes.find_next_version(last_version, notes)
+        print('Estimated next version to be: {0}'.format(version))
+
     release_date = None
     if date:
         release_date = datetime.datetime.strptime(date, '%Y-%m-%d')
+    else:
+        print('Release date not specified. Release date will be set to tomorrow.')
 
+    print()
     print('Devsite release notes')
     print('=====================')
-    print(formatters.DevsiteFormatter(notes, next_version, release_date).printable_output())
+    print(formatters.DevsiteFormatter(notes, version, release_date).printable_output())
 
     print('Github release notes')
     print('====================')
-    print(formatters.GitHubFormatter(notes, next_version).printable_output())
+    print(formatters.GitHubFormatter(notes, version).printable_output())
 
 
 if __name__ == '__main__':

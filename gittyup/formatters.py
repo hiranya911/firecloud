@@ -63,7 +63,7 @@ class DevsiteFormatter(ReleaseNoteFormatter):
 
     def header(self):
         release_date = self._estimate_release_date()
-        return '## <a name="{0}">Version {0} - {1}</a>\n\n'.format(self._next_version(), release_date)
+        return '## <a name="{0}">Version {0} - {1}</a>\n\n'.format(self._next_version, release_date)
 
     def note(self, note):
         note_type = DevsiteFormatter._note_type(note)
@@ -80,11 +80,10 @@ class DevsiteFormatter(ReleaseNoteFormatter):
         return '\n'
 
     def _estimate_release_date(self):
-        if self._release_date:
-            return self._release_date.strftime(DevsiteFormatter._DATE_FORMAT)
-        today = datetime.datetime.now()
-        tomorrow = today + datetime.timedelta(days=1)
-        return tomorrow.strftime(DevsiteFormatter._DATE_FORMAT)
+        release_date = self._release_date
+        if not release_date:
+            release_date = datetime.datetime.now() + datetime.timedelta(days=1)
+        return release_date.strftime(DevsiteFormatter._DATE_FORMAT)
 
     @staticmethod
     def _note_type(note):
@@ -135,7 +134,7 @@ class GitHubFormatter(ReleaseNoteFormatter):
       self._next_version = next_version
 
     def header(self):
-        return '{0}\n\n'.format(self._next_version())
+        return '{0}\n\n'.format(self._next_version)
 
     def note(self, note):
         note_type = GitHubFormatter._note_type(note)
