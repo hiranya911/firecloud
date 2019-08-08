@@ -197,3 +197,12 @@ def _attribution_text(note):
         kudos.user.login, kudos.user.url, kudos.url)
 
   return ''
+
+
+def truncate_or_pad(string, length):
+    diff = len(string) - length
+    if diff > 0:
+        string = string[:length - 3] + '...'
+    elif diff < 0:
+        string = string + ' ' * abs(diff)
+    return string
