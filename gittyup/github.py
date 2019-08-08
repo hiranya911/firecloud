@@ -12,7 +12,7 @@ class User(object):
         return self._data['login']
 
     @property
-    def html_url(self):
+    def url(self):
         return self._data['html_url']
 
 
@@ -47,7 +47,11 @@ class PullRequest(object):
 
     @property
     def user(self):
-        return User(self_data['user'])
+        return User(self._data['user'])
+
+    @property
+    def url(self):
+        return self._data['html_url']
 
 
 def _has_title_prefix(pull):

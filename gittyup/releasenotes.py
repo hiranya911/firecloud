@@ -10,12 +10,20 @@ class NoteType(object):
     CHANGED = 3
 
 
+class Attribution(object):
+
+    def __init__(self, pull):
+        self.user = pull.user
+        self.url = pull.url
+
+
 class ReleaseNote(object):
 
-    def __init__(self, note_type, description, section=''):
+    def __init__(self, note_type, description, section='', attribution=None):
         self.type = note_type
         self.description = description
         self.section = section
+        self.attribution = attribution
 
     @property
     def is_feature(self):
@@ -39,16 +47,17 @@ class Source(object):
     def from_pull_request(pull):
         source = ConventionalPullRequestMessage.from_pull_request(pull)
         if not source:
-            source = PullRequestMessage(pull.title, pull.body)
+            source = PullRequestMessage(pull)
 
         return source
 
 
 class PullRequestMessage(Source):
 
-    def __init__(self, title, body):
-        self._title = title
-        self._body = body
+    def __init__(self, pull):
+        self._pull = pull
+        self._title = pull.title
+        self._body = pull.body
 
     @property
     def _section(self):
@@ -72,8 +81,9 @@ class PullRequestMessage(Source):
         return descs if descs else [ self._title ]
 
     def get_release_notes(self):
+        attribution = Attribution(self._pull) if self._pull.is_contribution else None
         return [
-          ReleaseNote(self._type, desc, self._section)
+          ReleaseNote(self._type, desc, self._section, attribution)
           for desc in self._descriptions
         ]
 
@@ -82,8 +92,9 @@ class ConventionalPullRequestMessage(PullRequestMessage):
 
     PATTERN = re.compile(r'(?P<type>\w+)(\((?P<scope>\w+)\))?:\s+(?P<desc>.+)')
 
-    def __init__(self, title, body, pr_type, scope=None):
-        super().__init__(title, body)
+    def __init__(self, pull, title, pr_type, scope=None):
+        super().__init__(pull)
+        self._title = title
         self._pr_type = pr_type
         self._scope = scope
 
@@ -106,8 +117,8 @@ class ConventionalPullRequestMessage(PullRequestMessage):
         title_match = ConventionalPullRequestMessage.PATTERN.search(pull.title)
         if title_match:
             return ConventionalPullRequestMessage(
+                pull,
                 title_match.group('desc'),
-                pull.body,
                 title_match.group('type'),
                 title_match.group('scope'))
         return None

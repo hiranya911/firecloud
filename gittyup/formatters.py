@@ -84,7 +84,8 @@ class DevsiteFormatter(ReleaseNoteFormatter):
     def format_note(self, note):
         note_type = DevsiteFormatter._note_type(note)
         desc = _with_full_stop(DevsiteFormatter._ensure_relative_urls(note.description))
-        result = '{0} {1}'.format(note_type, desc)
+        kudos = _attribution_text(note)
+        result = '{0} {1} {2}'.format(note_type, desc, kudos)
         return DevsiteFormatter._wrap(result)
 
     def format_section_header(self, title):
@@ -154,7 +155,8 @@ class GitHubFormatter(ReleaseNoteFormatter):
     def format_note(self, note):
         note_type = GitHubFormatter._note_type(note)
         desc = _with_full_stop(GitHubFormatter._ensure_absolute_urls(note.description))
-        return '{0} {1}\n'.format(note_type, desc)
+        kudos = _attribution_text(note)
+        return '{0} {1} {2}\n'.format(note_type, desc, kudos)
 
     def format_section_header(self, title):
         title_markdown = GitHubFormatter._SECTIONS.get(title, title)
@@ -184,3 +186,12 @@ class GitHubFormatter(ReleaseNoteFormatter):
 
 def _with_full_stop(message):
     return message if message.endswith('.') else '{0}.'.format(message)
+
+
+def _attribution_text(note):
+  kudos = note.attribution
+  if kudos:
+      return ' Thanks [{0}]({1}) for the [contribution]({2}).'.format(
+        kudos.user.login, kudos.user.url, kudos.url)
+
+  return ''
