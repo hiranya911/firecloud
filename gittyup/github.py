@@ -161,7 +161,7 @@ class Client(object):
     def __init__(self, repo, base_branch=None, search_strategy=None):
         self._repo = repo
         self._base_branch = base_branch
-        self._search_strategy = search_strategy or TitlePrefixSearch(repo)
+        self._search_strategy = search_strategy or PullRequestSearch(repo, 82)
 
     def pulls_since_last_release(self):
         last_release = self._search_strategy.find()
