@@ -68,6 +68,8 @@ def _get_page(repo, page_number=1, base_branch=None):
     params = {
       'state': 'closed',
       'page': page_number,
+      'sort': 'updated',
+      'direction': 'desc',
     }
     if base_branch:
         params['base'] = base_branch
