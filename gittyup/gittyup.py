@@ -7,9 +7,17 @@ import github
 import releasenotes
 
 
+def _get_pr_summary(pull, pr_num_len):
+    pr_desc = '[{0}] {1}'.format(pull.base_branch, pull.title)
+    return '{0}: {1}'.format(
+        formatters.truncate_or_pad(str(pull.number), pr_num_len),
+        formatters.truncate_or_pad(pr_desc, 60))
+
+
 def _extract_release_notes(repo, branch=None):
     print('Analyzing GitHub history in https://github.com/{0}\n'.format(repo))
-    pulls = github.pulls_since_last_release(repo, branch)
+    client = github.Client(repo, branch)
+    pulls = client.pulls_since_last_release()
     if not pulls:
         print('No new pull requests since the last release.')
         sys.exit(1)
@@ -18,10 +26,7 @@ def _extract_release_notes(repo, branch=None):
     notes = []
     pr_num_len = len(str(pulls[0].number))
     for pull in pulls:
-        pr_desc = '[{0}] {1}'.format(pull.base_branch, pull.title)
-        pr_info = '{0}: {1}'.format(
-            formatters.truncate_or_pad(str(pull.number), pr_num_len),
-            formatters.truncate_or_pad(pr_desc, 60))
+        pr_info = _get_pr_summary(pull, pr_num_len)
         if pull.has_release_notes:
             print('{0}  [RELEASE NOTES]'.format(pr_info))
             filtered_pulls.append(pull)
