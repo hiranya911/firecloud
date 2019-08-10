@@ -57,7 +57,7 @@ class DevsiteFormatter(ReleaseNoteFormatter):
     _DATE_FORMAT = '%d %B, %Y'
 
     def __init__(self, notes, next_version, release_date=None):
-        super().__init__(notes)
+        super(DevsiteFormatter, self).__init__(notes)
         self._next_version = next_version
         self._release_date = release_date
 
@@ -130,7 +130,7 @@ class GitHubFormatter(ReleaseNoteFormatter):
     }
 
     def __init__(self, notes, next_version):
-      super().__init__(notes)
+      super(GitHubFormatter, self).__init__(notes)
       self._next_version = next_version
 
     def header(self):

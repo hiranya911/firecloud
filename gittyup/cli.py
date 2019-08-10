@@ -56,7 +56,7 @@ class Application(object):
         client = github.Client(self.repo, self.branch)
         last_release = self._find_last_release()
         pulls = [
-            p for p in self._find_pull_requests(client, last_release)
+            p for p in self._find_pulls_since_last_release(client, last_release)
             if p.has_release_notes
         ]
         notes = self._extract_release_notes(pulls)
@@ -74,10 +74,10 @@ class Application(object):
         else:
             print('No matching cutoff PR was found.')
 
-        print()
+        print('')
         return last_release
 
-    def _find_pull_requests(self, client, last_release):
+    def _find_pulls_since_last_release(self, client, last_release):
         pulls = client.pulls_since(last_release)
         if not pulls:
             raise ValueError('No new pull requests since the last release.')
@@ -89,13 +89,17 @@ class Application(object):
                 print('{0}  [RELEASE NOTES]'.format(pr_info))
             else:
                 print(pr_info)
+
+        print('')
         return pulls
 
     def _extract_release_notes(self, pulls):
+        if not pulls:
+            raise ValueError('No pull requests labeled with release notes.')
         notes = []
         for pull in pulls:
             notes.extend(releasenotes.get_release_notes_from_pull(pull))
-        print('\nExtracted release notes from {0} pull requests.'.format(len(pulls)))
+        print('Extracted release notes from {0} pull requests.'.format(len(pulls)))
         return notes
 
     def _get_next_version(self, client, notes):

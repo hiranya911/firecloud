@@ -90,7 +90,7 @@ class ConventionalPullRequestMessage(PullRequestMessage):
     PATTERN = re.compile(r'(?P<type>\w+)(\((?P<scope>\w+)\))?:\s+(?P<desc>.+)')
 
     def __init__(self, pull, title, pr_type, scope=None):
-        super().__init__(pull)
+        super(ConventionalPullRequestMessage, self).__init__(pull)
         self.title = title
         self._pr_type = pr_type
         self._scope = scope
