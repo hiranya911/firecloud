@@ -54,18 +54,16 @@ class Application(object):
 
         print('Analyzing GitHub history in https://github.com/{0}'.format(self.repo))
         client = github.Client(self.repo, self.branch)
-        last_release = self._find_last_release()
-        pulls = [
-            p for p in self._find_pulls_since_last_release(client, last_release)
-            if p.has_release_notes
-        ]
+
+        last_release = self._find_last_release_pull()
+        pulls = self._find_pulls_since_last_release(client, last_release)
         notes = self._extract_release_notes(pulls)
         next_version = self._get_next_version(client, notes)
 
         self._print_devsite_output(notes, next_version)
         self._print_github_output(notes, next_version)
 
-    def _find_last_release(self):
+    def _find_last_release_pull(self):
         print('Looking for a pull request with: {{ {0} }}'.format(self.search_strategy))
         last_release = self.search_strategy.search(self.repo, self.branch)
         if last_release:
@@ -78,7 +76,7 @@ class Application(object):
         return last_release
 
     def _find_pulls_since_last_release(self, client, last_release):
-        pulls = client.pulls_since(last_release)
+        pulls = client.find_pulls_since(last_release)
         if not pulls:
             raise ValueError('No new pull requests since the last release.')
 
@@ -91,11 +89,12 @@ class Application(object):
                 print(pr_info)
 
         print('')
-        return pulls
+        return [ p for p in pulls if p.has_release_notes ]
 
     def _extract_release_notes(self, pulls):
         if not pulls:
             raise ValueError('No pull requests labeled with release notes.')
+
         notes = []
         for pull in pulls:
             notes.extend(releasenotes.get_release_notes_from_pull(pull))
@@ -106,10 +105,11 @@ class Application(object):
         if self.next_version:
             return self.next_version
 
-        last_version = client.last_release()
-        version = releasenotes.find_next_version(last_version, notes)
-        print('Estimated next version to be: {0}'.format(version))
-        return version
+        last_version = client.find_last_release_version()
+        next_version = releasenotes.find_next_version(last_version, notes)
+        version_string = '{0}.{1}.{2}'.format(*next_version)
+        print('Estimated next version to be: {0}'.format(version_string))
+        return version_string
 
     def _print_devsite_output(self, notes, version):
         if not self.release_date:

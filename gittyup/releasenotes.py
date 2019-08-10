@@ -125,14 +125,21 @@ def find_next_version(last_version, notes):
     if not last_version:
         raise ValueError('last_version must be specified')
 
-    major, minor, patch = last_version.segments
+    major, minor, patch = last_version
     if any([note.is_change for note in notes]):
         major += 1
+        minor, patch = 0, 0
     elif any([note.is_feature for note in notes]):
         minor += 1
+        patch = 0
     else:
         patch += 1
-    return '{0}.{1}.{2}'.format(major, minor, patch)
+    return major, minor, patch
+
+
+def get_release_notes_from_pull(pull):
+    source = _source_from_pull_request(pull)
+    return source.get_release_notes()
 
 
 def _source_from_pull_request(pull):
@@ -141,8 +148,3 @@ def _source_from_pull_request(pull):
         source = PullRequestMessage(pull)
 
     return source
-
-
-def get_release_notes_from_pull(pull):
-    source = _source_from_pull_request(pull)
-    return source.get_release_notes()

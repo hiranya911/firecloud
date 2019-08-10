@@ -71,26 +71,6 @@ class PullRequest(object):
             self._data['closed_at'], PullRequest._GITHUB_DATE_FORMAT)
 
 
-class SemVer(object):
-
-    def __init__(self, tag_name):
-        if tag_name.startswith('v'):
-            tag_name = tag_name[1:]
-        self.segments = [ int(x) for x in tag_name.split('.') ]
-
-    @property
-    def major(self):
-        return self.segments[0]
-
-    @property
-    def minor(self):
-        return self.segments[1]
-
-    @property
-    def patch(self):
-        return self.segments[2]
-
-
 class PullRequestSearchStrategy(object):
 
     def search(self, repo, branch=None):
@@ -151,8 +131,8 @@ class Client(object):
         self._repo = repo
         self._base_branch = base_branch
 
-    def pulls_since(self, last_release=None):
-        cutoff = last_release.closed_at if last_release else None
+    def find_pulls_since(self, cutoff_pull=None):
+        cutoff = cutoff_pull.closed_at if cutoff_pull else None
 
         pulls = []
         proceed = True
@@ -180,12 +160,14 @@ class Client(object):
 
         return pulls
 
-    def last_release(self):
+    def find_last_release_version(self):
         url = 'https://api.github.com/repos/{0}/releases'.format(self._repo)
         response = requests.get(url)
         response.raise_for_status()
         tag_name = response.json()[0]['tag_name']
-        return SemVer(tag_name)
+        if tag_name.startswith('v'):
+            tag_name = tag_name[1:]
+        return tuple([ int(x) for x in tag_name.split('.') ])
 
     def _get_page(self, page_number=1):
         url = 'https://api.github.com/repos/{0}/pulls'.format(self._repo)
