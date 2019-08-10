@@ -138,7 +138,7 @@ class Client(object):
         proceed = True
         page_number = 1
         while proceed:
-            page = [PullRequest(pull) for pull in self._get_page(page_number)]
+            page = self._get_page(page_number)
             if not page:
                 proceed = False
                 continue
@@ -181,4 +181,4 @@ class Client(object):
             params['base'] = self._base_branch
         response = requests.get(url, params=params)
         response.raise_for_status()
-        return response.json()
+        return [ PullRequest(p) for p in response.json() ]
