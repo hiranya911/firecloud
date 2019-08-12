@@ -3,6 +3,9 @@ import datetime
 import requests
 
 
+_GITHUB_DATE_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
+
+
 class User(object):
 
     def __init__(self, data):
@@ -18,8 +21,6 @@ class User(object):
 
 
 class PullRequest(object):
-
-    _GITHUB_DATE_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
 
     def __init__(self, data):
         self._data = data
@@ -63,12 +64,27 @@ class PullRequest(object):
     @property
     def updated_at(self):
         return datetime.datetime.strptime(
-            self._data['updated_at'], PullRequest._GITHUB_DATE_FORMAT)
+            self._data['updated_at'], _GITHUB_DATE_FORMAT)
 
     @property
     def closed_at(self):
         return datetime.datetime.strptime(
-            self._data['closed_at'], PullRequest._GITHUB_DATE_FORMAT)
+            self._data['closed_at'], _GITHUB_DATE_FORMAT)
+
+
+class Release(object):
+
+    def __init__(self, data):
+        self._data = data
+
+    @property
+    def tag_name(self):
+        return self._data['tag_name']
+
+    @property
+    def published_at(self):
+        return datetime.datetime.strptime(
+            self._data['published_at'], _GITHUB_DATE_FORMAT)
 
 
 class PullRequestSearchStrategy(object):
@@ -160,11 +176,21 @@ class Client(object):
 
         return pulls
 
-    def find_last_release_version(self):
+    def find_last_release(self):
         url = 'https://api.github.com/repos/{0}/releases'.format(self._repo)
         response = requests.get(url)
         response.raise_for_status()
-        tag_name = response.json()[0]['tag_name']
+        releases = response.json()
+        if releases:
+            return Release(response.json()[0])
+        return None
+
+    def find_last_release_version(self):
+        release = self.find_last_release()
+        if not release:
+            return (0, 0, 0)
+
+        tag_name = release.tag_name
         if tag_name.startswith('v'):
             tag_name = tag_name[1:]
         return tuple([ int(x) for x in tag_name.split('.') ])
