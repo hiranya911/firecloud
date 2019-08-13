@@ -52,6 +52,7 @@ class DevsiteFormatter(ReleaseNoteFormatter):
 
     _SECTIONS = {
         'auth': '{{auth}}',
+        'rtdb': '{{database}}',
         'fcm': '{{messaging_longer}}'
     }
     _DATE_FORMAT = '%d %B, %Y'
@@ -126,6 +127,7 @@ class GitHubFormatter(ReleaseNoteFormatter):
 
     _SECTIONS = {
         'auth': 'Authentication',
+        'rtdb': 'Realtime Database',
         'fcm': 'Cloud Messaging'
     }
 
