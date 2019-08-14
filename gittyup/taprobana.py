@@ -13,7 +13,7 @@ import releasenotes
 
 class Taprobana(object):
 
-    _DEFAULT_SEARCH = github.SearchByTitlePrefix('Bumped version to')
+    _DEFAULT_SEARCH = github.SearchByPullRequestTitle('Bumped version to')
 
     def __init__(
         self, repo, branch='master', next_version=None, search_strategy=None,
@@ -57,11 +57,11 @@ class Taprobana(object):
         self._i(formatters.GitHubFormatter(notes, version).printable_output())
 
     def _find_last_release_pull(self):
-        self._v('Looking for a pull request with: {{ {0} }}'.format(self._search_strategy))
+        self._v('Looking for a {0}'.format(self._search_strategy))
         last_release = self._search_strategy.search(self._repo, self._branch)
         if last_release:
-            self._v('Found cutoff PR: [{0}] {1}'.format(
-                last_release.number, formatters.truncate_or_pad(last_release.title, 60)))
+            desc = last_release.get_description()
+            self._v('Found cutoff {0}'.format(formatters.truncate_or_pad(desc, 60)))
         else:
             self._v('No matching cutoff PR was found.')
 
@@ -113,7 +113,7 @@ class Taprobana(object):
 
     @staticmethod
     def _get_pr_summary(pull, pr_num_len):
-        pr_desc = '[{0}] {1}'.format(pull.base_branch, pull.title)
+        pr_desc = '[{0}] {1}'.format(pull.base_branch, pull.title.encode('utf-8'))
         return '{0}: {1}'.format(
             formatters.truncate_or_pad(str(pull.number), pr_num_len),
             formatters.truncate_or_pad(pr_desc, 60))
@@ -149,9 +149,9 @@ class CommandLineConfig(object):
     @property
     def search_strategy(self):
         if self._args.since_pr:
-            return github.SearchByNumber(self._args.since_pr)
+            return github.SearchByPullRequestNumber(self._args.since_pr)
         elif self._args.title_prefix:
-            return github.SearchByTitlePrefix(self._args.title_prefix)
+            return github.SearchByPullRequestTitle(self._args.title_prefix)
         return None
 
     @property

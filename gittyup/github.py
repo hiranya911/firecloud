@@ -6,6 +6,15 @@ import requests
 _GITHUB_DATE_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
 
 
+class Cutoff(object):
+
+    def get_datetime(self):
+        raise NotImplementedError()
+
+    def get_description(self):
+        raise NotImplementedError()
+
+
 class User(object):
 
     def __init__(self, data):
@@ -20,7 +29,7 @@ class User(object):
         return self._data['html_url']
 
 
-class PullRequest(object):
+class PullRequest(Cutoff):
 
     def __init__(self, data):
         self._data = data
@@ -71,6 +80,12 @@ class PullRequest(object):
         return datetime.datetime.strptime(
             self._data['closed_at'], _GITHUB_DATE_FORMAT)
 
+    def get_datetime(self):
+        return self.closed_at
+
+    def get_description(self):
+        return 'PR: [{0}] {1}'.format(self.number, self.title)
+
 
 class Release(object):
 
@@ -87,13 +102,13 @@ class Release(object):
             self._data['published_at'], _GITHUB_DATE_FORMAT)
 
 
-class PullRequestSearchStrategy(object):
+class CutoffSearchStrategy(object):
 
     def search(self, repo, branch=None):
         raise NotImplementedError
 
 
-class SearchByTitlePrefix(PullRequestSearchStrategy):
+class SearchByPullRequestTitle(CutoffSearchStrategy):
 
     def __init__(self, prefix):
         self._prefix = prefix
@@ -123,10 +138,10 @@ class SearchByTitlePrefix(PullRequestSearchStrategy):
         return None
 
     def __str__(self):
-        return 'TitlePrefix = "{0}"'.format(self._prefix)
+        return 'pull request with: {{ TitlePrefix = "{0}" }}'.format(self._prefix)
 
 
-class SearchByNumber(PullRequestSearchStrategy):
+class SearchByPullRequestNumber(CutoffSearchStrategy):
 
     def __init__(self, number):
         self._number = number
@@ -138,7 +153,7 @@ class SearchByNumber(PullRequestSearchStrategy):
         return PullRequest(response.json())
 
     def __str__(self):
-        return 'Number = {0}'.format(self._number)
+        return 'pull request with: {{ Number = {0} }}'.format(self._number)
 
 
 class Client(object):
@@ -154,8 +169,8 @@ class Client(object):
             return {'Authorization': 'token {0}'.format(self._token)}
         return None
 
-    def find_pulls_since(self, cutoff_pull=None):
-        cutoff = cutoff_pull.closed_at if cutoff_pull else None
+    def find_pulls_since(self, cutoff=None):
+        cutoff_datetime = cutoff.get_datetime() if cutoff else None
 
         pulls = []
         proceed = True
@@ -171,15 +186,15 @@ class Client(object):
                 # updated_at >= closed_at: When we see the first PR whose updated_at is before
                 # the cutoff, we can be sure that PR and all the ones after it were closed before
                 # the cutoff.
-                if cutoff and pull.updated_at < cutoff:
+                if cutoff_datetime and pull.updated_at < cutoff_datetime:
                     proceed = False
                     break
                 filtered.append(pull)
             pulls.extend(filtered)
             page_number += 1
 
-        if cutoff:
-            pulls = [pull for pull in pulls if pull.closed_at > cutoff]
+        if cutoff_datetime:
+            pulls = [pull for pull in pulls if pull.closed_at > cutoff_datetime]
 
         return pulls
 
