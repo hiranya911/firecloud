@@ -151,7 +151,7 @@ class Client(object):
     @property
     def _auth(self):
         if self._token:
-            return {'Authorization', 'token {0}'.format(self._token)}
+            return {'Authorization': 'token {0}'.format(self._token)}
         return None
 
     def find_pulls_since(self, cutoff_pull=None):
@@ -212,6 +212,7 @@ class Client(object):
         }
         if self._base_branch:
             params['base'] = self._base_branch
+
         response = requests.get(url, params=params, headers=self._auth)
         response.raise_for_status()
         return [ PullRequest(p) for p in response.json() ]

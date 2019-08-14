@@ -2,7 +2,9 @@ from __future__ import print_function
 
 import argparse
 import datetime
+import os
 import sys
+import traceback
 
 import formatters
 import github
@@ -15,7 +17,7 @@ class Taprobana(object):
 
     def __init__(
         self, repo, branch='master', next_version=None, search_strategy=None,
-        verbose=False, stream=sys.stdout):
+        verbose=False, stream=sys.stdout, github_token=None):
 
         self._repo = repo
         self._branch = branch
@@ -23,26 +25,36 @@ class Taprobana(object):
         self._search_strategy = search_strategy if search_strategy else Taprobana._DEFAULT_SEARCH
         self._verbose = verbose
         self._stream = stream
+        self._github_token = github_token
 
-    def run(self):
+    def generate_release_notes(self):
         if not self._repo:
             raise ValueError('Repo not specified.')
 
         self._v('Analyzing GitHub history in https://github.com/{0}'.format(self._repo))
-        client = github.Client(self._repo, self._branch)
+        if not self._github_token:
+            self._v('Accessing GitHub API without authentication credentials')
 
+        client = github.Client(self._repo, self._branch, self._github_token)
         last_release = self._find_last_release_pull()
         pulls = self._find_pulls_since_last_release(client, last_release)
         notes = self._extract_release_notes(pulls)
         next_version = self._get_next_version(client, notes)
         return notes, next_version
 
-    def print_output(self, notes, next_version, release_date=None):
+    def print_devsite_output(self, notes, version, release_date=None):
         if not release_date:
             self._v('Release date not specified. Release date will be set to tomorrow.\n')
 
-        self._print_devsite_output(notes, next_version, config.release_date)
-        self._print_github_output(notes, next_version)
+        self._i('Devsite release notes')
+        self._i('=====================')
+        devsite = formatters.DevsiteFormatter(notes, version, release_date)
+        self._i(devsite.printable_output())
+
+    def print_github_output(self, notes, version):
+        self._i('Github release notes')
+        self._i('====================')
+        self._i(formatters.GitHubFormatter(notes, version).printable_output())
 
     def _find_last_release_pull(self):
         self._v('Looking for a pull request with: {{ {0} }}'.format(self._search_strategy))
@@ -91,17 +103,6 @@ class Taprobana(object):
         version_string = '{0}.{1}.{2}'.format(*next_version)
         self._v('Estimated next version to be: {0}'.format(version_string))
         return version_string
-
-    def _print_devsite_output(self, notes, version, release_date):
-        self._i('Devsite release notes')
-        self._i('=====================')
-        devsite = formatters.DevsiteFormatter(notes, version, release_date)
-        self._i(devsite.printable_output())
-
-    def _print_github_output(self, notes, version):
-        self._i('Github release notes')
-        self._i('====================')
-        self._i(formatters.GitHubFormatter(notes, version).printable_output())
 
     def _v(self, msg=''):
         if self._verbose:
@@ -157,6 +158,12 @@ class CommandLineConfig(object):
     def verbose(self):
         return not self._args.quiet
 
+    @property
+    def github_token(self):
+        if self._args.token:
+            return self._args.token
+        return os.environ.get('TAPROBANA_GITHUB_TOKEN')
+
     @staticmethod
     def _init_parser():
         parser = argparse.ArgumentParser(description='Generate release notes for GitHub repo.')
@@ -185,6 +192,10 @@ class CommandLineConfig(object):
             help=('Title prefix string to match when searching for the last release pull request.'
                   ' Defaults to the prefix "Bumped version to".'))
         parser.add_argument(
+            '--token',
+            help=('GitHub access token to authorize API calls with. Can also be specified by'
+                  ' setting the TAPROBANA_GITHUB_TOKEN environment variable.'))
+        parser.add_argument(
             '--quiet',
             action='store_true',
             default=False,
@@ -195,11 +206,14 @@ class CommandLineConfig(object):
 if __name__ == '__main__':
     config = CommandLineConfig()
     taprobana = Taprobana(
-        config.repo, config.branch, config.next_version,
-        config.search_strategy, config.verbose)
+        config.repo, branch=config.branch, next_version=config.next_version,
+        search_strategy=config.search_strategy, verbose=config.verbose,
+        github_token=config.github_token)
+
     try:
-        notes, next_version = taprobana.run()
-        taprobana.print_output(notes, next_version, config.release_date)
+        notes, next_version = taprobana.generate_release_notes()
+        taprobana.print_devsite_output(notes, next_version, config.release_date)
+        taprobana.print_github_output(notes, next_version)
     except Exception as ex:
-        print(str(ex))
+        print(traceback.format_exc())
         sys.exit(1)
