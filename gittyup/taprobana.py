@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import argparse
 import datetime
 import sys
@@ -96,7 +98,6 @@ class Taprobana(object):
         devsite = formatters.DevsiteFormatter(notes, version, release_date)
         self._i(devsite.printable_output())
 
-
     def _print_github_output(self, notes, version):
         self._i('Github release notes')
         self._i('====================')
@@ -173,21 +174,21 @@ class CommandLineConfig(object):
             '--branch',
             default='master',
             help=('Name of the branch to scan for pull requests. Defaults to master. Use * to'
-                ' consider all branches.'))
+                  ' consider all branches.'))
         parser.add_argument(
             '--since-pr',
             type=int,
             help=('Pull request number that will be used as the cutoff for the last release.'
-                    ' If not specified looks for a pull request for title prefix match.'))
+                  ' If not specified looks for a pull request for title prefix match.'))
         parser.add_argument(
             '--title-prefix',
             help=('Title prefix string to match when searching for the last release pull request.'
-                    ' Defaults to the prefix "Bumped version to".'))
+                  ' Defaults to the prefix "Bumped version to".'))
         parser.add_argument(
             '--quiet',
             action='store_true',
             default=False,
-            help='Run in the quiet mode. Only prints the release notes without verbose info.')
+            help='Run in the quiet mode. Print only the release notes without verbose info.')
         return parser
 
 

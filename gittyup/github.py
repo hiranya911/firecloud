@@ -143,9 +143,16 @@ class SearchByNumber(PullRequestSearchStrategy):
 
 class Client(object):
 
-    def __init__(self, repo, base_branch=None):
+    def __init__(self, repo, base_branch=None, token=None):
         self._repo = repo
         self._base_branch = base_branch
+        self._token = token
+
+    @property
+    def _auth(self):
+        if self._token:
+            return {'Authorization', 'token {0}'.format(self._token)}
+        return None
 
     def find_pulls_since(self, cutoff_pull=None):
         cutoff = cutoff_pull.closed_at if cutoff_pull else None
@@ -178,7 +185,7 @@ class Client(object):
 
     def find_last_release(self):
         url = 'https://api.github.com/repos/{0}/releases'.format(self._repo)
-        response = requests.get(url)
+        response = requests.get(url, headers=self._auth)
         response.raise_for_status()
         releases = response.json()
         if releases:
@@ -205,6 +212,6 @@ class Client(object):
         }
         if self._base_branch:
             params['base'] = self._base_branch
-        response = requests.get(url, params=params)
+        response = requests.get(url, params=params, headers=self._auth)
         response.raise_for_status()
         return [ PullRequest(p) for p in response.json() ]
