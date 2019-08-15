@@ -36,7 +36,7 @@ class Taprobana(object):
             self._v('Accessing GitHub API without authentication credentials')
 
         client = github.Client(self._repo, self._branch, self._github_token)
-        last_release = self._find_last_release_pull()
+        last_release = self._find_last_release_cutoff(client)
         pulls = self._find_pulls_since_last_release(client, last_release)
         notes = self._extract_release_notes(pulls)
         next_version = self._get_next_version(client, notes)
@@ -56,9 +56,9 @@ class Taprobana(object):
         self._i('====================')
         self._i(formatters.GitHubFormatter(notes, version).printable_output())
 
-    def _find_last_release_pull(self):
+    def _find_last_release_cutoff(self, client):
         self._v('Looking for a {0}'.format(self._search_strategy))
-        last_release = self._search_strategy.search(self._repo, self._branch)
+        last_release = self._search_strategy.search(client)
         if last_release:
             desc = last_release.get_description()
             self._v('Found cutoff {0}'.format(formatters.truncate_or_pad(desc, 60)))
@@ -113,7 +113,7 @@ class Taprobana(object):
 
     @staticmethod
     def _get_pr_summary(pull, pr_num_len):
-        pr_desc = '[{0}] {1}'.format(pull.base_branch, pull.title.encode('utf-8'))
+        pr_desc = u'[{0}] {1}'.format(pull.base_branch, pull.title)
         return '{0}: {1}'.format(
             formatters.truncate_or_pad(str(pull.number), pr_num_len),
             formatters.truncate_or_pad(pr_desc, 60))
@@ -150,6 +150,10 @@ class CommandLineConfig(object):
     def search_strategy(self):
         if self._args.since_pr:
             return github.SearchByPullRequestNumber(self._args.since_pr)
+        elif self._args.commit_sha:
+            return github.SearchByCommitSha(self._args.commit_sha)
+        elif self._args.commit_prefix:
+            return github.SearchByCommitMessage(self._args.commit_prefix)
         elif self._args.title_prefix:
             return github.SearchByPullRequestTitle(self._args.title_prefix)
         return None
@@ -191,6 +195,12 @@ class CommandLineConfig(object):
             '--title-prefix',
             help=('Title prefix string to match when searching for the last release pull request.'
                   ' Defaults to the prefix "Bumped version to".'))
+        parser.add_argument(
+            '--commit-prefix',
+            help='Commit prefix string to match when searching for the last release commit.')
+        parser.add_argument(
+            '--commit-sha',
+            help='Commit sha string to use when searching for the last release commit.')
         parser.add_argument(
             '--token',
             help=('GitHub access token to authorize API calls with. Can also be specified by'
