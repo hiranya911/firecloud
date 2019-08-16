@@ -118,6 +118,13 @@ class Release(object):
         return datetime.datetime.strptime(
             self._data['published_at'], _GITHUB_DATE_FORMAT)
 
+    @property
+    def version(self):
+        version = self.tag_name
+        if version.startswith('v'):
+            version = version[1:]
+        return version
+
 
 class CutoffSearchStrategy(object):
 
@@ -226,6 +233,7 @@ class SearchByCommitSha(CutoffSearchStrategy):
     def __str__(self):
         return 'commit with: {{ Sha = "{0}" }}'.format(self._sha)
 
+
 class Client(object):
 
     def __init__(self, repo, base_branch=None, token=None):
@@ -266,7 +274,7 @@ class Client(object):
         if cutoff_datetime:
             pulls = [pull for pull in pulls if pull.closed_at > cutoff_datetime]
 
-        return pulls
+        return sorted(pulls, key=lambda p: p.closed_at)
 
     def find_last_release(self):
         url = 'https://api.github.com/repos/{0}/releases'.format(self.repo)
