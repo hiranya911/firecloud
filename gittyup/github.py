@@ -7,6 +7,9 @@ _GITHUB_DATE_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
 
 
 class Cutoff(object):
+    """Represents a point in the GitHub revision history.
+
+    Can be used as a starting point when searching for pull requests."""
 
     def get_datetime(self):
         raise NotImplementedError()
@@ -133,6 +136,7 @@ class CutoffSearchStrategy(object):
 
 
 class SearchByPullRequestTitle(CutoffSearchStrategy):
+    """Finds a Cutoff by matching pull request titles."""
 
     def __init__(self, prefix):
         self._prefix = prefix
@@ -166,6 +170,7 @@ class SearchByPullRequestTitle(CutoffSearchStrategy):
 
 
 class SearchByPullRequestNumber(CutoffSearchStrategy):
+    """Finds a Cutoff by matching pull request numbers."""
 
     def __init__(self, number):
         self._number = number
@@ -181,6 +186,7 @@ class SearchByPullRequestNumber(CutoffSearchStrategy):
 
 
 class SearchByCommitMessage(CutoffSearchStrategy):
+    """Finds a Cutoff by matching commit messages."""
 
     def __init__(self, prefix):
         self._prefix = prefix
@@ -220,6 +226,7 @@ class SearchByCommitMessage(CutoffSearchStrategy):
 
 
 class SearchByCommitSha(CutoffSearchStrategy):
+    """Finds a Cutoff by matching commit SHA values."""
 
     def __init__(self, sha):
         self._sha = sha

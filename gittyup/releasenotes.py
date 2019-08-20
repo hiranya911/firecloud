@@ -45,6 +45,13 @@ class Source(object):
 
 
 class PullRequestMessage(Source):
+    """Represents an arbitrary pull request.
+
+    If the pull request body contains a line starting with `API CHANGE:`, release note
+    type is set to `CHANGED` -- otehrwise `FIXED`. Release note content is usually
+    extracted from the title. This can be overridden by specifying one or more lines
+    in the body with the prefix `RELEASE NOTE:`. Markdown supported.
+    """
 
     _API_CHANGE = 'API CHANGE:'
     _RELEASE_NOTE = 'RELEASE NOTE:'
@@ -86,6 +93,12 @@ class PullRequestMessage(Source):
 
 
 class ConventionalPullRequestMessage(PullRequestMessage):
+    """Represents a pull request whose title matches the conventional commits format.
+
+    Conventional commits format is described at https://www.conventionalcommits.org/en.
+    An example would be `feat(auth): New xyz() API was implemented`. The prefix is used
+    to determine the section and type of the resulting release note.
+    """
 
     PATTERN = re.compile(r'(?P<type>\w+)(\((?P<scope>\w+)\))?:\s+(?P<desc>.+)')
 

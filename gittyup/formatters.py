@@ -7,6 +7,7 @@ _FIRE_SITE_URL = 'https://firebase.google.com'
 
 
 class ReleaseNoteFormatter(object):
+    """Formats release notes for a specific target."""
 
     def __init__(self, notes):
         self._notes = notes
@@ -49,6 +50,7 @@ class ReleaseNoteFormatter(object):
 
 
 class DevsiteFormatter(ReleaseNoteFormatter):
+    """Formats release notes for the Firebase Devsite."""
 
     _SECTIONS = {
         'auth': '{{auth}}',
@@ -124,6 +126,7 @@ class DevsiteFormatter(ReleaseNoteFormatter):
 
 
 class GitHubFormatter(ReleaseNoteFormatter):
+    """Formats release notes for the GitHub releases page."""
 
     _SECTIONS = {
         'auth': 'Authentication',
