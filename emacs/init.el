@@ -1,3 +1,11 @@
+;;; init.el --- Emacs initialization file.
+
+;;; Commentary:
+
+;;; Emacs config by Hiranya Jayathilaka.
+
+;;; Code:
+
 (setq make-backup-files nil) ; stop creating backup~ files
 ;(setq auto-save-default nil) ; stop creating #autosave# files
 
@@ -46,6 +54,7 @@ There are two things you can do about this warning:
 
 ;; Golang configuration
 (defun go-mode-setup ()
+  "Set up the Golang mode."
   (linum-mode 1)
   (electric-pair-mode 1)
   (go-eldoc-setup)
@@ -69,6 +78,7 @@ There are two things you can do about this warning:
 (setq compilation-window-height 14)
 (setq compilation-scroll-output t)
 (defun my-compilation-hook ()
+  "Make the compilation window small."
   (when (not (get-buffer-window "*compilation*"))
     (save-selected-window
       (save-excursion
@@ -80,11 +90,25 @@ There are two things you can do about this warning:
 (add-hook 'compilation-mode-hook 'my-compilation-hook)
 
 
-;;Other Key bindings
+;; Close compilation buffer if no errors
+(setq compilation-finish-function
+  (lambda (buf str)
+    (if (null (string-match ".*exited abnormally.*" str))
+        ;;no errors, make the compilation window go away in a few seconds
+        (progn
+          (run-at-time
+           "2 sec" nil 'delete-windows-on
+           (get-buffer-create "*compilation*"))
+          (message "No Compilation Errors!")))))
+
+
+;; Toggle comment region
 (global-set-key (kbd "C-c C-c") 'comment-or-uncomment-region)
 
 (defun toggle-comment-on-line ()
-  "comment or uncomment current line"
+  "Comment or uncomment current line."
   (interactive)
   (comment-or-uncomment-region (line-beginning-position) (line-end-position)))
 (global-set-key (kbd "C-c C-l") 'toggle-comment-on-line)
+
+;;; init.el ends here
