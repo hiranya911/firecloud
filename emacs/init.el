@@ -78,3 +78,13 @@ There are two things you can do about this warning:
           (switch-to-buffer "*compilation*")
           (shrink-window (- h compilation-window-height)))))))
 (add-hook 'compilation-mode-hook 'my-compilation-hook)
+
+
+;;Other Key bindings
+(global-set-key (kbd "C-c C-c") 'comment-or-uncomment-region)
+
+(defun toggle-comment-on-line ()
+  "comment or uncomment current line"
+  (interactive)
+  (comment-or-uncomment-region (line-beginning-position) (line-end-position)))
+(global-set-key (kbd "C-c C-l") 'toggle-comment-on-line)

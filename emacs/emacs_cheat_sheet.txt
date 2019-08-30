@@ -95,6 +95,7 @@ Frames
 
 C-x 5 C-f	Open file in a new frame and select it
 C-x 5 o		Select other frame
+C-x 5 0		Close current frame
 
 
 Edit text
