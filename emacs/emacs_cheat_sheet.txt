@@ -1,0 +1,191 @@
+Moving Around
+=============
+
+C-p	Previous line
+C-n	Next line
+
+C-f	Next char
+C-b	Previous char
+M-f	Next word
+M-b	Previoud word
+
+C-a	Start of line
+C-e	End of line
+M-a	Start of sentence
+M-e	End of sentence
+
+M-}	Next paragraph
+M-{	Previous paragraph
+
+C-l	Move current line to the center of screen (repeat to move to top and bottom)
+
+C-v	Next screen
+M-v	Previous screen
+
+M-<	Start of text
+M->	End of text
+
+M-m	Back to indentation
+
+
+Delete text
+===========
+
+C-d	Delete next char
+DEL	Delete previous char
+
+M-d	Kill next word
+M-DEL	Kill previous word
+
+C-k	Kill to the end of line
+
+C-x DEL	      Backwards kill sentence
+M-k 	      Kill to the end of sentence
+
+C-SPC	Set mark (start selection)
+C-w	Kills the text between last mark and current position
+M-w	Copy the text between last mark and current position
+
+C-u 0 C-k     Kill to the start of line
+
+Note: Killed text can be yanked back. Delete can only be undone.
+
+
+Yank text
+=========
+
+C-y	Yank the last killed text (follow up with M-y to cycle through history)
+
+
+Files
+=====
+
+C-x C-f		Find file
+C-x 4 f		Find file in other window
+C-x C-s		Save file
+
+M-x recover-file     Recover auto save data
+
+
+Buffers
+=======
+
+C-x C-b		List all active buffers
+C-x b		Switch buffer
+C-x s		Save modified buffers
+C-x C-s		Save current buffer
+C-x k		Kill current buffer
+
+M-x revert-buffer    Reload buffer
+
+
+Windows
+=======
+
+C-x 2		Open another window (horizontal split)
+C-x 3		Open another window (vertial split)
+C-x o		Select the "other" window
+C-M v		Scroll the other window
+C-x 4 C-f	Open file in other window and select it
+C-x 1 		Maximize the current window
+
+
+Frames
+======
+
+C-x 5 C-f	Open file in a new frame and select it
+C-x 5 o		Select other frame
+
+
+Edit text
+=========
+
+M-x replace-string	Replaces string (all occurences after current position)
+M-x <mode-name>		Switch major mode (e.g. M-x text-mode)
+M-x auto-fill-mode	Toggle auto fill mode (automatically split lines at margin)
+M-q 			Refill current paragraph
+
+C-x f			Set margin
+C-o 			Add empty line (Open line)
+C-x C-t			Transpose lines
+
+
+Search
+======
+
+C-s	Forward incremental search from current position
+	Repeat to advance to next occurence
+	DEL to retreat to previous occurence or modify the search
+	RET to cancel
+
+C-r	Reverse incremental search from current position
+	Repeat to advance backwards to next occurence
+	DEL to retreat forward to previous occurence or modify the search
+	RET to cancel
+
+
+Dired
+=====
+
+C-x d		Open directory (or just C-x C-f a directory)
+j   	     	Jump to file by name
+M-s f C-s    	Incremental file name search
+q     		Quit dired window
+
+d		Flag file for deletion
+#		Flag all autosave files for deletion
+~		Flag all backup files for deletion
+% d REGEXP	Flag matching files for deletion
+u		Unmark file for deletion
+DEL		Unmark previous file
+x		Delete flagged files
+
+f		Open current file
+RET		Open current file
+o		Open current file in a new window and select that window
+C-o		Open current file in a new window
+v		Open current file in view mode
+
+m		Mark current file
+% m REGEXP	Mark matching files
+u		Unmark current file
+U		Unmark all files
+t		Toggle mark on all files
+* C-n		Move to next marked file
+* c OLD NEW	Replace the OLD-mark on files with NEW-mark
+
+C NEW		Copy files to NEW
+D 		Delete files
+R NEW		Rename file (or move to NEW if multiple files are marked)
+M MODESPEC	Change mode to MODESPEC (e.g. M 800)
+A REGEXP	Search marked files for the REXEXP (M- to resume search)
+Q REGEXP	Replace matches of REGEXP with a new string in marked files
+! 		Run a shell command on marked files
+
+M-x find-name-dired   Find file names that match a pattern and show then on dired
+M-x find-grep-dired   Find file with content that match a pattern and show them on dired
+
+M-x make-directory    Create a new directory
+
+
+Miscellaneous commands
+======================
+
+C-u [NUM] [CMD]		Run CMD NUM times
+C-g 	  		Cancel current command
+C-/			Undo last change
+
+C-z			Suspend Emacs (fg to return)
+C-x C-c			Exit Emacs
+
+ESC ESC ESC		All purpose get out command (e.g. exit minibuffer)
+
+
+Help commands
+=============
+
+C-h c [CMD]		Display help on CMD
+C-h k [CMD]		Detailed help on CMD (e,g, C-h k C-p)
+C-h f [FUNC]		Detailed help on FUNC (e.g. C-h f previous-line)
+C-h a 			Search for matching commands
+C-h r			Open manual
