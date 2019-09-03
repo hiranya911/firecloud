@@ -110,6 +110,8 @@ C-x f			Set margin
 C-o 			Add empty line (Open line)
 C-x C-t			Transpose lines
 
+M-c 			Capitalize word
+
 
 Search
 ======

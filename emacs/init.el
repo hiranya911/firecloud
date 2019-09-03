@@ -105,10 +105,60 @@ There are two things you can do about this warning:
 ;; Toggle comment region
 (global-set-key (kbd "C-c C-c") 'comment-or-uncomment-region)
 
+
 (defun toggle-comment-on-line ()
   "Comment or uncomment current line."
   (interactive)
   (comment-or-uncomment-region (line-beginning-position) (line-end-position)))
 (global-set-key (kbd "C-c C-l") 'toggle-comment-on-line)
+
+
+;; Eshell customizations.
+(defun with-face (str &rest face-plist)
+  (propertize str 'face face-plist))
+
+
+(defun git-prompt-branch-name ()
+  "Get current git branch name"
+  (let ((args '("symbolic-ref" "HEAD" "--short")))
+    (with-temp-buffer
+      (apply #'process-file "git" nil (list t nil) nil args)
+      (unless (bobp)
+        (goto-char (point-min))
+        (buffer-substring-no-properties (point) (line-end-position))))))
+
+
+(defun git-dirty ()
+  (let ((args '("status" "--porcelain")))
+    (with-temp-buffer
+      (apply #'process-file "git" nil (list t nil) nil args)
+      (unless (bobp)
+        (goto-char (point-min))
+        (buffer-substring-no-properties (point) (line-end-position))))))
+
+
+(defun git-prompt-info ()
+  (let ((branch-name (git-prompt-branch-name)))
+    (concat
+      (if branch-name (format " (%s)" branch-name) "")
+      (if (git-dirty) "!" "")
+      )))
+
+
+(defun shk-eshell-prompt ()
+  (let ((header-bg "#fff"))
+    (concat
+      (with-face user-login-name :foreground "green")
+      (with-face "@mjolnir" :foreground "green")
+      ":"
+      (with-face (abbreviate-file-name (eshell/pwd)) :foreground "blue")
+      (with-face (git-prompt-info) :foreground "yellow")
+      (if (= (user-uid) 0)
+          (with-face " #" :foreground "red")
+        " $")
+      " ")))
+(setq eshell-prompt-function 'shk-eshell-prompt)
+(setq eshell-highlight-prompt nil)
+
 
 ;;; init.el ends here
