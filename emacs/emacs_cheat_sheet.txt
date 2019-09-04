@@ -131,6 +131,7 @@ Dired
 =====
 
 C-x d		Open directory (or just C-x C-f a directory)
+C-x C-j 	Open Dired buffer corresponding to current buffer
 j   	     	Jump to file by name
 M-s f C-s    	Incremental file name search
 q     		Quit dired window
