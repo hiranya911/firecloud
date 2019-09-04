@@ -41,10 +41,12 @@ C-k	Kill to the end of line
 
 C-x DEL	      Backwards kill sentence
 M-k 	      Kill to the end of sentence
+M-z	      Zap to the specified character
 
 C-SPC	Set mark (start selection)
 C-w	Kills the text between last mark and current position
 M-w	Copy the text between last mark and current position
+M-h	Mark current paragraph
 
 C-u 0 C-k     Kill to the start of line
 
@@ -108,10 +110,16 @@ M-x auto-fill-mode	Toggle auto fill mode (automatically split lines at margin)
 M-q 			Refill current paragraph
 
 C-x f			Set margin
+C-m 			Return (enter)
+C-i			Indent (tab)
 C-o 			Add empty line (Open line)
+C-t			Transpose characters
+M-t			Transport words
 C-x C-t			Transpose lines
 
-M-c 			Capitalize word
+M-c 			Capitalize word (Uppercase current letter)
+M-u			Uppercase word
+M-l			Lowercase word
 
 
 Search
