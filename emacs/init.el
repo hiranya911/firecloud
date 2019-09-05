@@ -6,8 +6,14 @@
 
 ;;; Code:
 
+
+;; Stop creating backup~ files
 (setq make-backup-files nil) ; stop creating backup~ files
-;(setq auto-save-default nil) ; stop creating #autosave# files
+
+
+;; Stop creating #autosave# files
+;(setq auto-save-default nil)
+
 
 (require 'package)
 (let* ((no-ssl (and (memq system-type '(windows-nt ms-dos))
@@ -47,7 +53,7 @@ There are two things you can do about this warning:
 (add-to-list 'default-frame-alist '(fullscreen . maximized))
 
 
-;;disable splash screen and startup message
+;; Disable splash screen and startup message
 (setq inhibit-startup-message t)
 (setq initial-scratch-message nil)
 
@@ -68,8 +74,14 @@ There are two things you can do about this warning:
   (setq company-tooltip-align-annotations t)
   ;; formats the buffer before saving
   (add-hook 'before-save-hook 'tide-format-before-save))
-
 (add-hook 'typescript-mode-hook #'setup-tide-mode)
+
+
+;; Python configuration
+(defun py-mode-setup()
+  (electric-pair-mode 1))
+(add-hook 'python-mode-hook 'jedi:setup)
+(add-hook 'python-mode-hook 'py-mode-setup)
 
 
 ;; Golang configuration
@@ -83,16 +95,16 @@ There are two things you can do about this warning:
   (local-set-key (kbd "M-.") 'godef-jump)
   (setq compile-command "echo Building... && go build -v && echo Testing... && go test -test.short -v")
   (setq compilation-read-command nil))
+  (require 'go-autocomplete)
+  (add-to-list 'load-path (concat (getenv "GOPATH")  "/src/github.com/golang/lint/misc/emacs"))
+  (require 'golint)
 (add-hook 'go-mode-hook 'go-mode-setup)
+
 
 ;; Load auto-complete
 (ac-config-default)
 (require 'auto-complete-config)
-(require 'go-autocomplete)
 
-;; Configure golint
-(add-to-list 'load-path (concat (getenv "GOPATH")  "/src/github.com/golang/lint/misc/emacs"))
-(require 'golint)
 
 ;; Smaller compilation buffer
 (setq compilation-window-height 14)
@@ -133,52 +145,12 @@ There are two things you can do about this warning:
 (global-set-key (kbd "C-c C-l") 'toggle-comment-on-line)
 
 
-;; Eshell customizations.
-(defun with-face (str &rest face-plist)
-  (propertize str 'face face-plist))
+;; Launch term
+(global-set-key (kbd "C-c t") '(lambda ()  (interactive) (ansi-term "/bin/bash")))
 
 
-(defun git-prompt-branch-name ()
-  "Get current git branch name"
-  (let ((args '("symbolic-ref" "HEAD" "--short")))
-    (with-temp-buffer
-      (apply #'process-file "git" nil (list t nil) nil args)
-      (unless (bobp)
-        (goto-char (point-min))
-        (buffer-substring-no-properties (point) (line-end-position))))))
-
-
-(defun git-dirty ()
-  (let ((args '("status" "--porcelain")))
-    (with-temp-buffer
-      (apply #'process-file "git" nil (list t nil) nil args)
-      (unless (bobp)
-        (goto-char (point-min))
-        (buffer-substring-no-properties (point) (line-end-position))))))
-
-
-(defun git-prompt-info ()
-  (let ((branch-name (git-prompt-branch-name)))
-    (concat
-      (if branch-name (format " (%s)" branch-name) "")
-      (if (git-dirty) "!" "")
-      )))
-
-
-(defun shk-eshell-prompt ()
-  (let ((header-bg "#fff"))
-    (concat
-      (with-face user-login-name :foreground "green")
-      (with-face "@mjolnir" :foreground "green")
-      ":"
-      (with-face (abbreviate-file-name (eshell/pwd)) :foreground "blue")
-      (with-face (git-prompt-info) :foreground "yellow")
-      (if (= (user-uid) 0)
-          (with-face " #" :foreground "red")
-        " $")
-      " ")))
-(setq eshell-prompt-function 'shk-eshell-prompt)
-(setq eshell-highlight-prompt nil)
+;; Wrap in double quotes
+(global-set-key (kbd "M-\"") 'insert-pair)
 
 
 ;;; init.el ends here

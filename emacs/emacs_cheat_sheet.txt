@@ -194,6 +194,16 @@ C-x C-c			Exit Emacs
 ESC ESC ESC		All purpose get out command (e.g. exit minibuffer)
 
 
+Term
+====
+
+M-x term	Launch terminal
+C-p 		Previous command
+C-n		Next command
+C-c C-j		Line mode
+C-c C-k		End line mode
+
+
 Help commands
 =============
 
