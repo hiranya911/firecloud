@@ -8,7 +8,7 @@
 
 
 ;; Stop creating backup~ files
-(setq make-backup-files nil) ; stop creating backup~ files
+(setq make-backup-files nil)
 
 
 ;; Stop creating #autosave# files
@@ -34,18 +34,11 @@ There are two things you can do about this warning:
     (add-to-list 'package-archives (cons "gnu" (concat proto "://elpa.gnu.org/packages/")))))
 (package-initialize)
 
-(add-hook 'python-mode-hook 'jedi:setup)
+
+;; Set theme and font defaults
 (custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
  '(custom-enabled-themes (quote (deeper-blue))))
 (custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
  '(default ((t (:family "Ubuntu Mono" :foundry "DAMA" :slant normal :weight normal :height 151 :width normal)))))
 
 
@@ -89,15 +82,18 @@ There are two things you can do about this warning:
   "Set up the Golang mode."
   (linum-mode 1)
   (electric-pair-mode 1)
+  (subword-mode 1)
   (go-eldoc-setup)
   (setq gofmt-command "goimports")
   (add-hook 'before-save-hook 'gofmt-before-save)
   (local-set-key (kbd "M-.") 'godef-jump)
-  (setq compile-command "echo Building... && go build -v && echo Testing... && go test -test.short -v")
-  (setq compilation-read-command nil))
+  (make-local-variable 'compile-command)
+  (setq compile-command "go build -v && echo Testing... && go test -test.short -v && golint -set_exit_status")
   (require 'go-autocomplete)
   (add-to-list 'load-path (concat (getenv "GOPATH")  "/src/github.com/golang/lint/misc/emacs"))
   (require 'golint)
+  (make-local-variable 'compilation-read-command)
+  (setq compilation-read-command nil))
 (add-hook 'go-mode-hook 'go-mode-setup)
 
 

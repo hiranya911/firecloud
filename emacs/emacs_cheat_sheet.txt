@@ -17,6 +17,11 @@ M-e	End of sentence
 M-}	Next paragraph
 M-{	Previous paragraph
 
+C-M-n	Next parenthetical group
+C-m-p	Previous parenthetical group
+C-m-u	Move up in patenthetical structure
+C-m-d	Move down in parenthetical structure
+
 C-l	Move current line to the center of screen (repeat to move to top and bottom)
 
 C-v	Next screen
@@ -26,6 +31,8 @@ M-<	Start of text
 M->	End of text
 
 M-m	Back to indentation
+
+M-g M-g	Go to line number
 
 
 Delete text
@@ -64,7 +71,9 @@ Files
 
 C-x C-f		Find file
 C-x 4 f		Find file in other window
+C-x 5 f		Find file in other frame
 C-x C-s		Save file
+C-x C-v		Find alternate file (Also a tricky way to reload current file)
 
 M-x recover-file     Recover auto save data
 
@@ -202,6 +211,15 @@ C-p 		Previous command
 C-n		Next command
 C-c C-j		Line mode
 C-c C-k		End line mode
+
+
+Compilation
+===========
+
+M-x compile	Compile the current buffer
+C-x `		Move to the next offending line
+M-g M-n		Next offending line
+M-g M-p		Previous offending line
 
 
 Help commands
