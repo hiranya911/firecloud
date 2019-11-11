@@ -1,0 +1,198 @@
+# Sign In
+==========
+
+firebase.auth().onAuthStateChanged(authStateHandler);
+
+function signIn() {
+  var provider = new firebase.auth.GoogleAuthProvider();
+  firebase.auth().signInWithPopup(provider);
+}
+
+// Returns the signed-in user's profile Pic URL.
+function getProfilePicUrl() {
+  return firebase.auth().currentUser.photoURL || '/images/profile_placeholder.png';
+}
+
+// Returns the signed-in user's display name.
+function getUserName() {
+  return firebase.auth().currentUser.displayName;
+}
+
+// Returns true if a user is signed-in.
+function isUserSignedIn() {
+  return !!firebase.auth().currentUser;
+}
+
+# Sign Out
+===========
+
+function signOut() {
+  firebase.auth().signOut();
+}
+
+# Save Message
+==============
+
+function saveMessage(messageText) {
+  const message = {
+    name: getUserName(),
+    profilePicUrl: getProfilePicUrl(),
+    text: messageText,
+    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+  };
+  return firebase.firestore().collection('messages').add(message)
+    .catch((error) => {
+      console.error('Error writing new message to database', error);
+    });
+}
+
+# Load messages
+===============
+
+// Loads chat messages history and listens for upcoming ones.
+function loadMessages() {
+  // Create the query to load the last 12 messages and listen for new ones.
+  const query = firebase.firestore()
+    .collection('messages')
+    .orderBy('timestamp', 'desc')
+    .limit(12);
+
+  // Start listening to the query.
+  query.onSnapshot((snapshot) => {
+    snapshot.docChanges().forEach((change) => {
+      if (change.type === 'removed') {
+        deleteMessage(change.doc.id);
+      } else {
+        const message = change.doc.data();
+        displayMessage(
+          change.doc.id, message.timestamp, message.name,
+          message.text, message.profilePicUrl, message.imageUrl);
+      }
+    });
+  });
+}
+
+# Save Image
+=============
+
+function saveImageMessage(file) {
+  // 1 - Add a placeholder message to Firestore.
+  const message = {
+    name: getUserName(),
+    imageUrl: LOADING_IMAGE_URL,
+    profilePicUrl: getProfilePicUrl(),
+    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+  };
+  firebase.firestore().collection('messages').add(message)
+    .then((messageRef) => {
+      // 2 - Upload the image to Cloud Storage.
+      const filePath = firebase.auth().currentUser.uid + '/' + messageRef.id + '/' + file.name;
+      return firebase.storage().ref(filePath).put(file).then((fileSnapshot) => {
+        // 3 - Generate a public URL for the file.
+        return fileSnapshot.ref.getDownloadURL().then((url) => {
+          // 4 - Update the message placeholder with the image's URL.
+          return messageRef.update({
+            imageUrl: url,
+            storageUri: fileSnapshot.metadata.fullPath
+          });
+        });
+      });
+    })
+    .catch((error) => {
+      console.error('There was an error uploading a file to Cloud Storage:', error);
+    });
+}
+
+# Send Notification
+====================
+
+// Saves the messaging device token to the datastore.
+function saveMessagingDeviceToken() {
+  firebase.messaging().getToken()
+    .then((currentToken) => {
+      if (currentToken) {
+        console.log('Got FCM device token:', currentToken);
+        // Saving the Device Token to the datastore.
+        firebase.firestore().collection('fcmTokens').doc(currentToken)
+          .set({uid: firebase.auth().currentUser.uid});
+      } else {
+        // Need to request permissions to show notifications.
+        requestNotificationsPermissions();
+      }
+    }).catch((error) => {
+      console.error('Unable to get messaging token.', error);
+    });
+}
+
+// Requests permissions to show notifications.
+function requestNotificationsPermissions() {
+  console.log('Requesting notifications permission...');
+  firebase.messaging().requestPermission()
+    .then(() => {
+      // Notification permission granted.
+      saveMessagingDeviceToken();
+    }).catch((error) => {
+      console.error('Unable to get permission to notify.', error);
+    });
+}
+
+# Remote Config
+================
+
+const remoteConfig = firebase.remoteConfig();
+remoteConfig.settings.minimumFetchIntervalMillis = 0;
+
+remoteConfig.fetchAndActivate().then(() => {
+  const darkTheme = remoteConfig.getBoolean('dark');
+  if (darkTheme) {
+    mainContainer.style.backgroundColor = 'black';
+    mainContainer.classList.remove('mdl-color--grey-100');
+    headerContainer.style.backgroundColor = 'darkorange';
+    headerContainer.classList.remove('mdl-color--light-blue-700');
+  }
+});
+
+# Translation Support
+======================
+
+var language = 'default';
+
+function loadMessages() {
+  // Create the query to load the last 12 messages and listen for new ones.
+  const query = firebase.firestore()
+    .collection('messages')
+    .orderBy('timestamp', 'desc')
+    .limit(12);
+
+  // Start listening to the query.
+  query.onSnapshot((snapshot) => {
+    snapshot.docChanges().forEach((change) => {
+      if (change.type === 'removed') {
+        deleteMessage(change.doc.id);
+      } else {
+        const message = change.doc.data();
+        const translated = message.translated;
+        let text = message.text;
+        if (translated && translated[language]) {
+          text = translated[language];
+        }
+
+        displayMessage(
+          change.doc.id, message.timestamp, message.name,
+          text, message.profilePicUrl, message.imageUrl);
+      }
+    });
+  });
+}
+
+remoteConfig.fetchAndActivate().then(() => {
+  language = remoteConfig.getString('lang') || 'default';
+
+  const darkTheme = remoteConfig.getBoolean('dark');
+  if (darkTheme) {
+    mainContainer.style.backgroundColor = 'black';
+    mainContainer.classList.remove('mdl-color--grey-100');
+    headerContainer.style.backgroundColor = 'darkorange';
+    headerContainer.classList.remove('mdl-color--light-blue-700');
+  }
+});
