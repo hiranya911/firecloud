@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 
@@ -33,37 +32,31 @@ func (s *Session) pwd(c *ishell.Context) {
 }
 
 func (s *Session) get(c *ishell.Context) {
-	showData := func(child string, heading bool) error {
-		data, err := s.getData(child)
+	showData := func(path string, heading bool) error {
+		data, err := s.getData(path)
 		if err != nil {
 			return err
 		}
 
 		if heading {
-			c.Printf("%s:\n", child)
+			c.Printf("%s:\n", path)
 		}
 
 		c.Println(data)
 		return nil
 	}
 
-	if len(c.Args) > 1 {
-		for idx, child := range c.Args {
-			if idx > 0 {
-				c.Println()
-			}
+	paths := c.Args
+	if len(paths) == 0 {
+		paths = append(paths, "")
+	}
 
-			if err := showData(child, true); err != nil {
-				c.Println(err)
-				return
-			}
+	for idx, child := range paths {
+		if idx > 0 {
+			c.Println()
 		}
-	} else {
-		child := ""
-		if len(c.Args) == 1 {
-			child = c.Args[0]
-		}
-		if err := showData(child, false); err != nil {
+
+		if err := showData(child, len(paths) > 1); err != nil {
 			c.Println(err)
 			return
 		}
@@ -89,6 +82,62 @@ func (s *Session) getData(child string) (string, error) {
 	return string(b), nil
 }
 
+func (s *Session) ls(c *ishell.Context) {
+	showData := func(path string, heading bool) error {
+		children, err := s.listChildren(path)
+		if err != nil {
+			return err
+		}
+
+		if heading {
+			c.Printf("%s:\n", path)
+		}
+
+		for _, child := range children {
+			c.Println(child)
+		}
+		return nil
+	}
+
+	paths := c.Args
+	if len(paths) == 0 {
+		paths = append(paths, "")
+	}
+
+	for idx, child := range paths {
+		if idx > 0 {
+			c.Println()
+		}
+
+		if err := showData(child, len(paths) > 1); err != nil {
+			c.Println(err)
+			return
+		}
+	}
+}
+
+func (s *Session) listChildren(child string) ([]string, error) {
+	target, err := s.node(child)
+	if err != nil {
+		return nil, err
+	}
+
+	var i interface{}
+	if err := target.GetShallow(context.Background(), &i); err != nil {
+		return nil, err
+	}
+
+	var children []string
+	dir, ok := i.(map[string]interface{})
+	if ok {
+		for k := range dir {
+			children = append(children, k)
+		}
+	}
+
+	return children, nil
+}
+
 func (s *Session) set(c *ishell.Context) {
 	if len(c.Args) != 1 && len(c.Args) != 2 {
 		c.Println("usage: set [path] <data>")
@@ -110,6 +159,26 @@ func (s *Session) set(c *ishell.Context) {
 
 	if err := target.Set(context.Background(), marshalData(data)); err != nil {
 		c.Println(err)
+	}
+}
+
+func (s *Session) push(c *ishell.Context) {
+	if len(c.Args) > 1 {
+		c.Println("usage: push [data]")
+		return
+	}
+
+	target := s.curr
+	var data interface{}
+	if len(c.Args) == 1 {
+		data = marshalData(c.Args[0])
+	}
+
+	child, err := target.Push(context.Background(), data)
+	if err != nil {
+		c.Println(err)
+	} else {
+		c.Println(child)
 	}
 }
 
@@ -165,7 +234,6 @@ func (s *Session) node(path string) (node, error) {
 	}
 
 	segments := parsePath(path)
-	log.Println(path, segments)
 	if len(segments) == 0 || strings.HasPrefix(path, "/") {
 		target = s.root()
 	}

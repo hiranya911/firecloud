@@ -12,7 +12,7 @@ const version = "0.0.1"
 // NewShell creates a new RTDB shell.
 func NewShell(s *Session, stdout io.Writer) *ishell.Shell {
 	shell := ishell.NewWithConfig(&readline.Config{
-		Prompt: ">>> ",
+		Prompt: "/ >>> ",
 		Stdout: stdout,
 	})
 	registerCommands(shell, s)
@@ -33,13 +33,23 @@ func registerCommands(shell *ishell.Shell, s *Session) {
 		Func: s.get,
 	})
 	shell.AddCmd(&ishell.Cmd{
+		Name: "ls",
+		Help: "Lists the child data in the current or specified path",
+		Func: s.ls,
+	})
+	shell.AddCmd(&ishell.Cmd{
+		Name: "push",
+		Help: "Pushes a new child to the current path",
+		Func: s.push,
+	})
+	shell.AddCmd(&ishell.Cmd{
 		Name: "pwd",
 		Help: "Prints the path to the current location",
 		Func: s.pwd,
 	})
 	shell.AddCmd(&ishell.Cmd{
 		Name: "set",
-		Help: "sets the data to the current or specified path",
+		Help: "Sets the data to the current or specified path",
 		Func: s.set,
 	})
 	shell.AddCmd(&ishell.Cmd{

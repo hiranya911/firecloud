@@ -9,7 +9,9 @@ import (
 
 type node interface {
 	Get(ctx context.Context, v interface{}) error
+	GetShallow(ctx context.Context, v interface{}) error
 	Set(ctx context.Context, v interface{}) error
+	Push(ctx context.Context, v interface{}) (string, error)
 	Delete(ctx context.Context) error
 	Path() string
 	Parent() node
@@ -25,15 +27,28 @@ func (node *rtdbNode) Path() string {
 }
 
 func (node *rtdbNode) Parent() node {
-	return &rtdbNode {
-		Ref: node.Ref.Parent(),
+	ref := node.Ref.Parent()
+	if ref == nil {
+		return nil
+	}
+	return &rtdbNode{
+		Ref: ref,
 	}
 }
 
 func (node *rtdbNode) Child(path string) node {
-	return &rtdbNode {
+	return &rtdbNode{
 		Ref: node.Ref.Child(path),
 	}
+}
+
+func (node *rtdbNode) Push(ctx context.Context, v interface{}) (string, error) {
+	ref, err := node.Ref.Push(ctx, v)
+	if err != nil {
+		return "", err
+	}
+
+	return ref.Path, nil
 }
 
 func newRTDBNode(ctx context.Context, url string) (*rtdbNode, error) {
@@ -54,7 +69,7 @@ func newRTDBNode(ctx context.Context, url string) (*rtdbNode, error) {
 		return nil, err
 	}
 
-	return &rtdbNode {
+	return &rtdbNode{
 		Ref: client.NewRef("/"),
 	}, nil
 }

@@ -1,18 +1,16 @@
 package rtdb
 
 import (
-	"context"
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 	"testing"
 )
 
 func TestPwd(t *testing.T) {
-	log.Println("pwd")
 	session := newTestSession()
 	var buf bytes.Buffer
 	shell := NewShell(session, &buf)
@@ -110,7 +108,7 @@ func TestGet(t *testing.T) {
 func TestGetError(t *testing.T) {
 	node := &TestNode{
 		path: "/",
-		err: errors.New("something failed"),
+		err:  errors.New("something failed"),
 	}
 	session := newTestSessionWithNode(node)
 	var buf bytes.Buffer
@@ -228,7 +226,7 @@ func TestSet(t *testing.T) {
 func TestSetError(t *testing.T) {
 	node := &TestNode{
 		path: "/",
-		err: errors.New("something failed"),
+		err:  errors.New("something failed"),
 	}
 	session := newTestSessionWithNode(node)
 	var buf bytes.Buffer
@@ -306,7 +304,7 @@ func TestDeleteInvalidPath(t *testing.T) {
 func TestDeleteError(t *testing.T) {
 	node := &TestNode{
 		path: "/",
-		err: errors.New("something failed"),
+		err:  errors.New("something failed"),
 	}
 	session := newTestSessionWithNode(node)
 	var buf bytes.Buffer
@@ -346,7 +344,7 @@ func newTestSessionWithNode(n *TestNode) *Session {
 type TestNode struct {
 	path string
 	data []byte
-	err error
+	err  error
 }
 
 func (n *TestNode) Child(path string) node {
@@ -369,7 +367,7 @@ func (n *TestNode) Parent() node {
 	}
 
 	temp := *n
-	temp.path = "/" + strings.Join(segs[0:len(segs) - 1], "/")
+	temp.path = "/" + strings.Join(segs[0:len(segs)-1], "/")
 	return &temp
 }
 
@@ -385,6 +383,10 @@ func (n *TestNode) Get(ctx context.Context, v interface{}) error {
 	return json.Unmarshal(n.data, v)
 }
 
+func (n *TestNode) GetShallow(ctx context.Context, v interface{}) error {
+	return n.Get(ctx, v)
+}
+
 func (n *TestNode) Set(ctx context.Context, v interface{}) error {
 	if n.err != nil {
 		return n.err
@@ -397,6 +399,15 @@ func (n *TestNode) Set(ctx context.Context, v interface{}) error {
 
 	n.data = b
 	return nil
+}
+
+func (n *TestNode) Push(ctx context.Context, v interface{}) (string, error) {
+	err := n.Set(ctx, v)
+	if err != nil {
+		return "", err
+	}
+
+	return "child", nil
 }
 
 func (n *TestNode) Delete(ctx context.Context) error {
