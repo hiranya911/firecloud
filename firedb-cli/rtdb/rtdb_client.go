@@ -7,22 +7,36 @@ import (
 	"firebase.google.com/go/db"
 )
 
-type client interface {
-	Path() string
+type node interface {
 	Get(ctx context.Context, v interface{}) error
 	Set(ctx context.Context, v interface{}) error
 	Delete(ctx context.Context) error
-	Parent() client
-	Child(path string) client
-	FromPath(path string) client
+	Path() string
+	Parent() node
+	Child(path string) node
 }
 
-type firebaseClient struct {
-	client *db.Client
+type rtdbNode struct {
 	*db.Ref
 }
 
-func newFirebaseClient(ctx context.Context, url string) (*firebaseClient, error) {
+func (node *rtdbNode) Path() string {
+	return node.Ref.Path
+}
+
+func (node *rtdbNode) Parent() node {
+	return &rtdbNode {
+		Ref: node.Ref.Parent(),
+	}
+}
+
+func (node *rtdbNode) Child(path string) node {
+	return &rtdbNode {
+		Ref: node.Ref.Child(path),
+	}
+}
+
+func newRTDBNode(ctx context.Context, url string) (*rtdbNode, error) {
 	var conf *firebase.Config
 	if url != "" {
 		conf = &firebase.Config{
@@ -40,33 +54,7 @@ func newFirebaseClient(ctx context.Context, url string) (*firebaseClient, error)
 		return nil, err
 	}
 
-	return &firebaseClient{
-		client: client,
-		Ref:    client.NewRef("/"),
+	return &rtdbNode {
+		Ref: client.NewRef("/"),
 	}, nil
-}
-
-func (r *firebaseClient) Path() string {
-	return r.Ref.Path
-}
-
-func (r *firebaseClient) Child(path string) client {
-	return &firebaseClient{
-		client: r.client,
-		Ref:    r.Ref.Child(path),
-	}
-}
-
-func (r *firebaseClient) Parent() client {
-	return &firebaseClient{
-		client: r.client,
-		Ref:    r.Ref.Parent(),
-	}
-}
-
-func (r *firebaseClient) FromPath(path string) client {
-	return &firebaseClient{
-		client: r.client,
-		Ref:    r.client.NewRef(path),
-	}
 }

@@ -7,6 +7,8 @@ import (
 	"github.com/abiosoft/readline"
 )
 
+const version = "0.0.1"
+
 // NewShell creates a new RTDB shell.
 func NewShell(s *Session, stdout io.Writer) *ishell.Shell {
 	shell := ishell.NewWithConfig(&readline.Config{
@@ -22,7 +24,7 @@ func registerCommands(shell *ishell.Shell, s *Session) {
 		Name: "version",
 		Help: "Print version of the CLI",
 		Func: func(c *ishell.Context) {
-			c.Println("0.0.1")
+			c.Println(version)
 		},
 	})
 	shell.AddCmd(&ishell.Cmd{

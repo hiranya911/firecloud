@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 
@@ -12,23 +13,23 @@ import (
 
 // Session represents the current status of the CLI session.
 type Session struct {
-	client client
+	curr node
 }
 
 // NewSession creates a new session to interact with the specified RTDB URL.
 func NewSession(ctx context.Context, url string) (*Session, error) {
-	ref, err := newFirebaseClient(context.Background(), url)
+	node, err := newRTDBNode(context.Background(), url)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Session{
-		client: ref,
+		curr: node,
 	}, nil
 }
 
 func (s *Session) pwd(c *ishell.Context) {
-	c.Println(s.client.Path())
+	c.Println(s.curr.Path())
 }
 
 func (s *Session) get(c *ishell.Context) {
@@ -70,7 +71,7 @@ func (s *Session) get(c *ishell.Context) {
 }
 
 func (s *Session) getData(child string) (string, error) {
-	target, err := s.getRef(child)
+	target, err := s.node(child)
 	if err != nil {
 		return "", err
 	}
@@ -94,11 +95,11 @@ func (s *Session) set(c *ishell.Context) {
 		return
 	}
 
-	target := s.client
+	target := s.curr
 	data := c.Args[0]
 	if len(c.Args) == 2 {
 		var err error
-		target, err = s.getRef(c.Args[0])
+		target, err = s.node(c.Args[0])
 		if err != nil {
 			c.Println(err)
 			return
@@ -118,10 +119,10 @@ func (s *Session) delete(c *ishell.Context) {
 		return
 	}
 
-	target := s.client
+	target := s.curr
 	if len(c.Args) == 1 {
 		var err error
-		target, err = s.getRef(c.Args[0])
+		target, err = s.node(c.Args[0])
 		if err != nil {
 			c.Println(err)
 			return
@@ -140,43 +141,37 @@ func (s *Session) cd(c *ishell.Context) {
 	}
 
 	if len(c.Args) == 0 {
-		if s.client.Path() != "/" {
-			s.client = s.client.FromPath("/")
-			c.SetPrompt(s.client.Path() + " >>> ")
+		if s.curr.Path() != "/" {
+			s.curr = s.root()
+			c.SetPrompt(s.curr.Path() + " >>> ")
 		}
 		return
 	}
 
-	target, err := s.getRef(c.Args[0])
+	target, err := s.node(c.Args[0])
 	if err != nil {
 		c.Println(err)
 		return
 	}
 
-	s.client = target
-	c.SetPrompt(target.Path() + " >>> ")
+	s.curr = target
+	c.SetPrompt(s.curr.Path() + " >>> ")
 }
 
-// getRef returns a Ref that corresponds to the given path. If the path
-// is relative, it is calculated relative to the current node (s.ref). If
-// the path is empty, the current node is returned.
-func (s *Session) getRef(path string) (client, error) {
-	target := s.client
+func (s *Session) node(path string) (node, error) {
+	target := s.curr
 	if path == "" {
 		return target, nil
 	}
 
 	segments := parsePath(path)
-	if len(segments) == 0 {
-		return s.client.FromPath("/"), nil
+	log.Println(path, segments)
+	if len(segments) == 0 || strings.HasPrefix(path, "/") {
+		target = s.root()
 	}
 
-	for idx, seg := range segments {
-		if seg == "" {
-			if idx == 0 {
-				target = s.client.FromPath("/")
-			}
-		} else if seg == "." {
+	for _, seg := range segments {
+		if seg == "." {
 			continue
 		} else if seg == ".." {
 			target = target.Parent()
@@ -190,6 +185,18 @@ func (s *Session) getRef(path string) (client, error) {
 	}
 
 	return target, nil
+}
+
+func (s *Session) root() node {
+	curr := s.curr
+	for {
+		temp := curr.Parent()
+		if temp == nil {
+			return curr
+		}
+
+		curr = temp
+	}
 }
 
 func marshalData(data string) interface{} {
