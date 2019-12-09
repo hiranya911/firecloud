@@ -13,9 +13,10 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "dbcli"
 	app.Usage = "Start DB CLI shell"
+	app.Version = rtdb.Version
 	app.Action = func(c *cli.Context) error {
 		url := c.Args().Get(0)
-		session, err := rtdb.NewSession(context.Background(), url)
+		session, err := rtdb.NewRTDBSession(context.Background(), url)
 		if err != nil {
 			return cli.NewExitError(err, 1)
 		}
