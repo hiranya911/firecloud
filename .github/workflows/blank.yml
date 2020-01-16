@@ -18,6 +18,7 @@ jobs:
       run: |
         echo Simulated release
         echo Current commit $GITHUB_SHA
+        git fetch -t
         last=`git describe --abbrev=0 --tags`
         echo $last
         ref=`git show-ref -s $last`
