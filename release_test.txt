@@ -2,3 +2,4 @@ Test 1: Should not trigger
 Test 2: Should trigger
 Test 3: Test with git commands
 Test 4: Fetching git tags
+Test 5: Moved pipeline to bash script
