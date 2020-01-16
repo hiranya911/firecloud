@@ -15,4 +15,11 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: Publish
-      run: echo Simulated release
+      run: |
+        echo Simulated release
+        echo Current commit $GITHUB_SHA
+        last=`git describe --abbrev=0 --tags`
+        echo $last
+        ref=`git show-ref -s $last`
+        echo $ref
+        git log $ref..$GITHUB_SHA --oneline
