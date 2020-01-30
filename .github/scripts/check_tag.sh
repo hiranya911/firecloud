@@ -15,7 +15,7 @@ then
         exit 1
     else
         echo "RETRY_RELEASE option is set. Releasing from the existing tag."
-        echo "::set-output name=scratch::false"
+        echo "::set-output name=reuse::true"
     fi
 else
     echo "Tag v${RELEASE_VERSION} does not exist. It will be created."
