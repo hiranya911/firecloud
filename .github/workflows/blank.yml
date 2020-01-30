@@ -1,4 +1,4 @@
-name: Mock Release
+name: Release
 
 on:
   pull_request:
@@ -8,69 +8,81 @@ on:
       - closed
 
 jobs:
-  mock_release:
+  publish_release:
     if: github.event.pull_request.merged &&
-      contains(github.event.pull_request.labels.*.name, 'release') &&
+      contains(github.event.pull_request.labels.*.name, 'release: pending') &&
       startsWith(github.event.pull_request.title, '[chore] Release')
 
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout source to staging
+    - name: Checkout source for staging
       uses: actions/checkout@v2
       with:
-        path: ./staging
+        path: staging
 
-    - name: Setup Python 3.6
+    - name: Set up Python
       uses: actions/setup-python@v1
       with:
         python-version: 3.6
 
-    - name: Extract release version
-      id: release_version
-      working-directory: ./staging
-      run: |
-        RELEASE_VERSION=`python -c "exec(open('release_demo/__about__.py').read()); print(__version__)"`
-        echo Releasing version $RELEASE_VERSION
-        echo "::set-output name=value::v$RELEASE_VERSION"
-
-    - name: Check release tag
-      id: check_tag
-      working-directory: ./staging
-      run: ./.github/scripts/check_tag.sh
+    - name: Prepare release
+      id: prepare
+      run: ./.github/scripts/prepare_release.sh
+      working-directory: staging
       env:
-        RELEASE_VERSION: ${{ steps.release_version.outputs.value }}
-        RETRY_RELEASE: ${{ contains(github.event.pull_request.labels.*.name, 'retry') }}
+        RETRY_RELEASE: contains(github.event.pull_request.labels.*.name, 'release: retry')
+        DRYRUN_RELEASE: contains(github.event.pull_request.labels.*.name, 'release: dryrun')
+        SKIP_TWEET: contains(github.event.pull_request.labels.*.name, 'release: skip-tweet')
+
+    - name: Install dependencies
+      working-directory: staging
+      run: echo Installing dependencies
 
     - name: Run tests
-      if: steps.check_tag.outputs.scratch
+      if: success() && steps.prepare.outputs.create_tag
+      working-directory: staging
       run: |
         echo Running unit tests
         echo Running integration tests
 
-    - name: Create release tag ${{ steps.release_version.outputs.value }}
-      if: steps.check_tag.outputs.scratch && success()
+    - name: Create release tag
+      if: success() && steps.prepare.outputs.create_tag && steps.prepare.outputs.publish
       uses: actions/create-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: ${{ steps.release_version.outputs.value }}
-        release_name: FireCloud ${{ steps.release_version.outputs.value }}
-        body: |
-          Changes in this Release
-          - First Change
-          - Second Change
+        tag_name: ${{ steps.prepare.outputs.version }}
+        release_name: FirCloud${{ steps.prepare.outputs.version }}
         draft: false
         prerelease: false
 
-    - name: Checkout source to deploy
+    - name: Checkout source for deployment
       uses: actions/checkout@v2
+      if: steps.prepare.outputs.publish || steps.prepare.outputs.reuse_tag
       with:
-        ref: ${{ steps.release_version.outputs.value }}
-        path: ./deploy
+        ref: ${{ steps.prepare.outputs.version }}
+        path: deploy
 
-    - name: Deploy to Pypi
-      working-directory: ./deploy
+    - name: Build release artifacts
+      working-directory: ${{ steps.prepare.outputs.directory }}
       run: |
-        echo Creating release artifacts
-        echo Uploading artifacts to Pypi
+        echo Building release artifacts
+        mkdir -p dist
+        cat "Test release" > dist/output.txt
+
+    - name: Archive artifacts
+      uses: actions/upload-artifact@v1
+      working-directory: ${{ steps.prepare.outputs.directory }}
+      with:
+        name: dist
+        path: dist
+
+    - name: Publish to Pypi
+      if: success() && steps.prepare.outputs.publish
+      working-directory: deploy
+      run: echo Publishing to Pypi
+
+    - name: Post to Twitter
+      if: success() && steps.prepare.outputs.tweet
+      run: echo Posting Tweet
