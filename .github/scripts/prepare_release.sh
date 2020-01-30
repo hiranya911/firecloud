@@ -28,9 +28,11 @@ if [[ "$DRYRUN_RELEASE" == "true" ]]; then
   echo "Dryrun mode has been requested. No new tags or artifacts will be published."
   DIRECTORY="staging"
 else
+  echo "Dryrun mode has not been requested. Executing in the publish mode."
   echo "::set-output name=publish::true"
   DIRECTORY="deploy"
   if [[ "${SKIP_TWEET}" != "true" ]]; then
+    echo "Release will be posted to Twitter."
     echo "::set-output name=tweet::true"
   else
     echo "Skip Tweet mode has been requested. Release will not be posted to Twitter."

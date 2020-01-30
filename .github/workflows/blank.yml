@@ -31,9 +31,9 @@ jobs:
       run: ./.github/scripts/prepare_release.sh
       working-directory: staging
       env:
-        RETRY_RELEASE: contains(github.event.pull_request.labels.*.name, 'release:retry')
-        DRYRUN_RELEASE: contains(github.event.pull_request.labels.*.name, 'release:dryrun')
-        SKIP_TWEET: contains(github.event.pull_request.labels.*.name, 'release:skip-tweet')
+        RETRY_RELEASE: ${{ contains(github.event.pull_request.labels.*.name, 'release:retry') }}
+        DRYRUN_RELEASE: ${{ contains(github.event.pull_request.labels.*.name, 'release:dryrun') }}
+        SKIP_TWEET: ${{ contains(github.event.pull_request.labels.*.name, 'release:skip-tweet') }}
 
     - name: Install dependencies
       working-directory: staging
@@ -53,7 +53,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         tag_name: ${{ steps.prepare.outputs.version }}
-        release_name: FirCloud${{ steps.prepare.outputs.version }}
+        release_name: FirCloud ${{ steps.prepare.outputs.version }}
         draft: false
         prerelease: false
 
