@@ -39,8 +39,8 @@ jobs:
       working-directory: ./staging
       run: ./.github/scripts/check_tag.sh
       env:
-        RELEASE_VERSION: steps.release_version.outputs.value
-        RETRY_RELEASE: contains(github.event.pull_request.labels.*.name, 'release')
+        RELEASE_VERSION: ${{ steps.release_version.outputs.value }}
+        RETRY_RELEASE: ${{ contains(github.event.pull_request.labels.*.name, 'retry') }}
 
     - name: Run tests
       if: steps.check_tag.outputs.scratch
