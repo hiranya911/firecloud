@@ -24,6 +24,7 @@ func NewShell(sess Session, stdout io.Writer) *ishell.Shell {
 	shell.AddCmd((&push{sess}).build())
 	shell.AddCmd((&pwd{sess}).build())
 	shell.AddCmd((&set{sess}).build())
+	shell.AddCmd((&update{sess}).build())
 	shell.AddCmd((&vers{sess}).build())
 
 	return shell

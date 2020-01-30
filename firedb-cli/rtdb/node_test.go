@@ -292,6 +292,10 @@ func (s *testSetter) Set(ctx context.Context, v interface{}) error {
 	return nil
 }
 
+func (s *testSetter) Update(ctx context.Context, v map[string]interface{}) error {
+	return s.Set(ctx, v)
+}
+
 func (s *testSetter) Delete(ctx context.Context) error {
 	if s.err != nil {
 		return s.err
@@ -392,6 +396,100 @@ func TestSetInvalidPath(t *testing.T) {
 	want := "Invalid path: \"..\"\n"
 	if buf.String() != want {
 		t.Errorf("set = %q; want = %q", buf.String(), want)
+	}
+}
+
+func TestUpdate(t *testing.T) {
+	currSetter := &testSetter{}
+	rootSetter := &testSetter{}
+	sess := &testSession{
+		nodes: map[string]*testNode{
+			"": &testNode{
+				updater: currSetter,
+			},
+			"/": &testNode{
+				updater: rootSetter,
+			},
+		},
+	}
+	var buf bytes.Buffer
+	shell := NewShell(sess, &buf)
+
+	shell.Process("update", `{"key": "value"}`)
+	want := `{"key":"value"}`
+	if string(currSetter.data) != want {
+		t.Errorf("update = %q; want = %q", string(currSetter.data), want)
+	}
+
+	shell.Process("update", "/", `{"key": "value"}`)
+	if string(rootSetter.data) != want {
+		t.Errorf("update = %q; want = %q", string(rootSetter.data), want)
+	}
+}
+
+func TestUpdateError(t *testing.T) {
+	sess := &testSession{
+		nodes: map[string]*testNode{
+			"": &testNode{
+				updater: &testSetter{
+					err: errors.New("something failed"),
+				},
+			},
+		},
+	}
+	var buf bytes.Buffer
+	shell := NewShell(sess, &buf)
+
+	shell.Process("update", `{"key": "value"}`)
+
+	want := "something failed\n"
+	if buf.String() != want {
+		t.Errorf("update = %q; want = %q", buf.String(), want)
+	}
+}
+
+func TestUpdateExtraArgs(t *testing.T) {
+	sess := &testSession{}
+	var buf bytes.Buffer
+	shell := NewShell(sess, &buf)
+
+	shell.Process("update", "foo", "bar", "baz")
+
+	want := "usage: update [path] <data>\n"
+	if buf.String() != want {
+		t.Errorf("update = %q; want = %q", buf.String(), want)
+	}
+}
+
+func TestUpdateInvalidPath(t *testing.T) {
+	sess := &testSession{}
+	var buf bytes.Buffer
+	shell := NewShell(sess, &buf)
+
+	shell.Process("update", "..", "true")
+
+	want := "Invalid path: \"..\"\n"
+	if buf.String() != want {
+		t.Errorf("update = %q; want = %q", buf.String(), want)
+	}
+}
+
+func TestUpdateInvalidData(t *testing.T) {
+	sess := &testSession{
+		nodes: map[string]*testNode{
+			"": &testNode{
+				updater: &testSetter{},
+			},
+		},
+	}
+	var buf bytes.Buffer
+	shell := NewShell(sess, &buf)
+
+	shell.Process("update", "true")
+
+	want := "data must be a map\n"
+	if buf.String() != want {
+		t.Errorf("update = %q; want = %q", buf.String(), want)
 	}
 }
 
@@ -500,6 +598,7 @@ type testNode struct {
 	setter
 	deleter
 	pusher
+	updater
 }
 
 type testSession struct {

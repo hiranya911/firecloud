@@ -287,6 +287,49 @@ func (d *delete) run(c *ishell.Context) {
 	}
 }
 
+type update struct {
+	sess Session
+}
+
+func (u *update) build() *ishell.Cmd {
+	return &ishell.Cmd{
+		Name: "update",
+		Help: "Updates the specified child keys",
+		Func: u.run,
+	}
+}
+
+func (u *update) run(c *ishell.Context) {
+	if len(c.Args) != 1 && len(c.Args) != 2 {
+		c.Println("usage: update [path] <data>")
+		return
+	}
+
+	path := ""
+	data := c.Args[0]
+	if len(c.Args) == 2 {
+		path = c.Args[0]
+		data = c.Args[1]
+	}
+
+	target, err := u.sess.node(path)
+	if err != nil {
+		c.Println(err)
+		return
+	}
+
+	parsed := marshalData(data)
+	m, ok := parsed.(map[string]interface{})
+	if !ok {
+		c.Println("data must be a map")
+		return
+	}
+
+	if err := target.Update(context.Background(), m); err != nil {
+		c.Println(err)
+	}
+}
+
 type push struct {
 	sess Session
 }

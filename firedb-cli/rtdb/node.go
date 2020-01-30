@@ -22,6 +22,10 @@ type setter interface {
 	Set(ctx context.Context, v interface{}) error
 }
 
+type updater interface {
+	Update(ctx context.Context, v map[string]interface{}) error
+}
+
 type deleter interface {
 	Delete(ctx context.Context) error
 }
@@ -37,6 +41,7 @@ type node interface {
 	pathFinder
 	pusher
 	setter
+	updater
 }
 
 type rtdbNode struct {
