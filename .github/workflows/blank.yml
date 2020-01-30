@@ -10,12 +10,68 @@ on:
 jobs:
   mock_release:
     if: github.event.pull_request.merged &&
-      contains(github.event.pull_request.labels.*.name, 'release')
+      contains(github.event.pull_request.labels.*.name, 'release') &&
+      startsWith(github.event.pull_request.title, '[chore] Release')
+
     runs-on: ubuntu-latest
+
     steps:
-    - uses: actions/checkout@v1
-    - name: Publish
+    - name: Checkout source to staging
+      uses: actions/checkout@v2
+      run: git fetch --depth=1 origin +refs/tags/*:refs/tags/*
+      with:
+        path: ./staging
+
+    - name: Setup Python 3.6
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.6
+
+    - name: Extract release version
+      id: release_version
+      working-directory: ./staging
       run: |
-        echo Simulated release
-        echo Current commit $GITHUB_SHA
-        ./release-notes.sh
+        RELEASE_VERSION=`python -c "execfile('release_demo/__about__.py'); print(__version__)"`
+        echo Releasing version $RELEASE_VERSION
+        echo "::set-output name=value::v$RELEASE_VERSION"
+
+    - name: Check release tag
+      id: check_tag
+      working-directory: ./staging
+      run: ./.github/scripts/check_tag.sh
+      env:
+        RELEASE_VERSION: steps.release_version.outputs.value
+        RETRY_RELEASE: contains(github.event.pull_request.labels.*.name, 'release')
+
+    - name: Run tests
+      if: steps.check_tag.outputs.scratch
+      run: |
+        echo Running unit tests
+        echo Running integration tests
+
+    - name: Create release tag ${{ steps.release_version.outputs.value }}
+      if: steps.check_tag.outputs.scratch && success()
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.release_version.outputs.value }}
+        release_name: FireCloud ${{ steps.release_version.outputs.value }}
+        body: |
+          Changes in this Release
+          - First Change
+          - Second Change
+        draft: false
+        prerelease: false
+
+      - name: Checkout source to deploy
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ steps.release_version.outputs.value }}
+          path: ./deploy
+
+      - name: Deploy to Pypi
+        working-directory: ./deploy
+        run: |
+          echo Creating release artifacts
+          echo Uploading artifacts to Pypi
