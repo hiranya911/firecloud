@@ -30,7 +30,7 @@ jobs:
       id: release_version
       working-directory: ./staging
       run: |
-        RELEASE_VERSION=`python -c "execfile('release_demo/__about__.py'); print(__version__)"`
+        RELEASE_VERSION=`python -c "exec(open('release_demo/__about__.py').read()); print(__version__)"`
         echo Releasing version $RELEASE_VERSION
         echo "::set-output name=value::v$RELEASE_VERSION"
 
