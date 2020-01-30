@@ -3,6 +3,8 @@
 echo "Release version is ${RELEASE_VERSION}"
 echo "Reuse tag is set to ${RETRY_RELEASE}"
 
+git fetch --depth=1 origin +refs/tags/*:refs/tags/*
+
 RELEASE_TAG=`git describe --tags v${RELEASE_VERSION} 2> /dev/null`
 if [[ $? -eq 0 ]];
 then
