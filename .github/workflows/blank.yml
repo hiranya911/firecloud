@@ -69,7 +69,7 @@ jobs:
       run: |
         echo Building release artifacts
         mkdir -p dist
-        cat "Test release" > dist/output.txt
+        echo Test release > dist/output.txt
 
     - name: Archive artifacts
       uses: actions/upload-artifact@v1
