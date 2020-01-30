@@ -64,14 +64,14 @@ jobs:
         draft: false
         prerelease: false
 
-      - name: Checkout source to deploy
-        uses: actions/checkout@v2
-        with:
-          ref: ${{ steps.release_version.outputs.value }}
-          path: ./deploy
+    - name: Checkout source to deploy
+      uses: actions/checkout@v2
+      with:
+        ref: ${{ steps.release_version.outputs.value }}
+        path: ./deploy
 
-      - name: Deploy to Pypi
-        working-directory: ./deploy
-        run: |
-          echo Creating release artifacts
-          echo Uploading artifacts to Pypi
+    - name: Deploy to Pypi
+      working-directory: ./deploy
+      run: |
+        echo Creating release artifacts
+        echo Uploading artifacts to Pypi
