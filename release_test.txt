@@ -4,3 +4,4 @@ Test 3: Test with git commands
 Test 4: Fetching git tags
 Test 5: Moved pipeline to bash script
 Test 6: Should pick up from last tag (0.0.1)
+Test 7: Trigger a release
