@@ -46,14 +46,23 @@ jobs:
         echo Running unit tests
         echo Running integration tests
 
+    - name: Generate changelog
+      id: changelog
+      if: success() && steps.prepare.outputs.create_tag && steps.prepare.outputs.publish
+      working-directory: staging
+      run: |
+        CHANGELOG=`./.github/scripts/generate_changelog.sh | grep -v "\\[info\\]"`
+        echo "::set-output name=text::${CHANGELOG}"
+
     - name: Create release tag
       if: success() && steps.prepare.outputs.create_tag && steps.prepare.outputs.publish
-      uses: actions/create-release@v1
+      uses: actions/create-release@4d1b6075ce7561b672b8552148edec2f27584fe9
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         tag_name: ${{ steps.prepare.outputs.version }}
         release_name: FirCloud ${{ steps.prepare.outputs.version }}
+        body: ${{ steps.changelog.outputs.text }}
         draft: false
         prerelease: false
 
