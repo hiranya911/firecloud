@@ -51,8 +51,13 @@ jobs:
       if: success() && steps.prepare.outputs.create_tag && steps.prepare.outputs.publish
       working-directory: staging
       run: |
-        CHANGELOG=`./.github/scripts/generate_changelog.sh | grep -v "\\[info\\]"`
-        echo "::set-output name=text::${CHANGELOG}"
+        CHANGELOG=`./.github/scripts/generate_changelog.sh`
+        echo "$CHANGELOG"
+        FILTERED_CHANGELOG=`echo "$CHANGELOG" | grep -v "\\[info\\]"`
+        FILTERED_CHANGELOG="${FILTERED_CHANGELOG//'%'/'%25'}"
+        FILTERED_CHANGELOG="${FILTERED_CHANGELOG//$'\n'/'%0A'}"
+        FILTERED_CHANGELOG="${FILTERED_CHANGELOG//$'\r'/'%0D'}"
+        echo "::set-output name=text::${FILTERED_CHANGELOG}"
 
     - name: Create release tag
       if: success() && steps.prepare.outputs.create_tag && steps.prepare.outputs.publish
