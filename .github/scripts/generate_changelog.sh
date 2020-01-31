@@ -1,5 +1,8 @@
 #!/bin/bash
 
+set -e
+set -u
+
 function printChangelog() {
   local TITLE=$1
   shift
@@ -15,20 +18,20 @@ function printChangelog() {
   fi
 }
 
-if [[ -z "$GITHUB_SHA" ]]; then
+if [[ -z "${GITHUB_SHA}" ]]; then
   GITHUB_SHA="HEAD"
 fi
 
-LAST_TAG=`git describe --tags $(git rev-list --tags --max-count=1) 2> /dev/null`
-if [[ $? -eq 0 ]]; then
-  echo "[info] Last release tag: ${LAST_TAG}"
-  COMMIT_SHA=`git show-ref -s ${LAST_TAG}`
-  echo "[info] Last release commit: ${COMMIT_SHA}"
-  VERSION_RANGE="${COMMIT_SHA}..${GITHUB_SHA}"
-  echo "[info] Including all commits in the range ${VERSION_RANGE}"
-else
-  echo "[info] No tags found. Including all commits up to ${GITHUB_SHA}"
+LAST_TAG=`git describe --tags $(git rev-list --tags --max-count=1) 2> /dev/null` || true
+if [[ -z "${LAST_TAG}" ]]; then
+  echo "[info] No tags found. Including all commits up to ${GITHUB_SHA}."
   VERSION_RANGE="${GITHUB_SHA}"
+else
+  echo "[info] Last release tag: ${LAST_TAG}."
+  COMMIT_SHA=`git show-ref -s ${LAST_TAG}`
+  echo "[info] Last release commit: ${COMMIT_SHA}."
+  VERSION_RANGE="${COMMIT_SHA}..${GITHUB_SHA}"
+  echo "[info] Including all commits in the range ${VERSION_RANGE}."
 fi
 
 echo ""

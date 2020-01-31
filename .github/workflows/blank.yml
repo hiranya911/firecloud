@@ -9,73 +9,77 @@ on:
 
 jobs:
   publish_release:
+    # Only run the workflow when a pull request has been:
+    # 1. merged to the master branch
+    # 2. baring the label 'release:pending', and
+    # 3. the title prefix '[chore] Release'.
     if: github.event.pull_request.merged &&
       contains(github.event.pull_request.labels.*.name, 'release:pending') &&
       startsWith(github.event.pull_request.title, '[chore] Release')
 
     runs-on: ubuntu-latest
 
+    # Checkout source.
     steps:
     - name: Checkout source for staging
       uses: actions/checkout@v2
-      with:
-        path: staging
-        fetch-depth: 0
 
     - name: Set up Python
       uses: actions/setup-python@v1
       with:
         python-version: 3.6
 
+    # Handle additional options/labels passed with the release PR.
+    # 1. release:dryrun - Dry run the release process without publishing new tags or artifacts.
+    # 2. release:skip-tweet - Complete the release process without posting to Twitter.
     - name: Prepare release
       id: prepare
       run: ./.github/scripts/prepare_release.sh
-      working-directory: staging
       env:
         DRYRUN_RELEASE: ${{ contains(github.event.pull_request.labels.*.name, 'release:dryrun') }}
         SKIP_TWEET: ${{ contains(github.event.pull_request.labels.*.name, 'release:skip-tweet') }}
 
     - name: Install dependencies
-      working-directory: staging
       run: echo Installing dependencies
 
     - name: Run tests
-      working-directory: staging
-      run: |
-        echo Running unit tests
-        echo Running integration tests
+      run: echo Running tests
 
-    - name: Build release artifacts
-      working-directory: staging
+    - name: Package release artifacts
       run: |
-        echo Building release artifacts
+        echo Packaging release artifacts
         mkdir -p dist
         echo Test release > dist/output.txt
 
+    # Attach the packaged artifacts to the workflow output. These can be manually
+    # downloaded for later inspection if necessary.
     - name: Archive artifacts
       uses: actions/upload-artifact@v1
       with:
         name: dist
-        path: staging/dist
+        path: dist
 
+    # Tag the release if not executing in the dryrun mode. We pull this action froma
+    # custom fork of a contributor until https://github.com/actions/create-release/pull/32
+    # is merged. Also note that v1 of this action does not support the "body" parameter.
     - name: Create release tag
       if: success() && steps.prepare.outputs.publish
-      # https://github.com/actions/create-release/pull/32
       uses: fleskesvor/create-release@1a72e235c178bf2ae6c51a8ae36febc24568c5fe
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         tag_name: ${{ steps.prepare.outputs.version }}
-        release_name: FirCloud ${{ steps.prepare.outputs.version }}
+        release_name: FireCloud ${{ steps.prepare.outputs.version }}
         body: ${{ steps.prepare.outputs.changelog }}
         draft: false
         prerelease: false
 
+    # If not executing in the dryrun mode, publish the packagted artifacts to Pypi.
     - name: Publish to Pypi
       if: success() && steps.prepare.outputs.publish
-      working-directory: deploy
       run: echo Publishing to Pypi
 
+    # If the Tweet is not suppressed, post to Twitter.
     - name: Post to Twitter
       if: success() && steps.prepare.outputs.tweet
       run: echo Posting Tweet
