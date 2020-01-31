@@ -13,7 +13,6 @@
 
 ####################################################################################
 
-echo "[release: retry]: ${RETRY_RELEASE}"
 echo "[release: dryrun]: ${DRYRUN_RELEASE}"
 echo "[release: skip-tweet]: ${SKIP_TWEET}"
 echo
@@ -23,14 +22,31 @@ RELEASE_VERSION=`python -c "exec(open('release_demo/__about__.py').read()); prin
 echo "Releasing version ${RELEASE_VERSION}"
 echo "::set-output name=version::v${RELEASE_VERSION}"
 
+# Fetch all tags.
+git fetch --depth=1 origin +refs/tags/*:refs/tags/*
+
+# Check if this release is already tagged.
+git describe --tags v${RELEASE_VERSION} 2> /dev/null
+if [[ $? -eq 0 ]]; then
+  echo "Tag v${RELEASE_VERSION} already exists. Halting release process."
+  echo "If the tag was created in a previous unsuccessful attempt, delete it and try again."
+  echo "  $ git tag -d v${RELEASE_VERSION}"
+  echo "  $ git push --delete origin v${RELEASE_VERSION}"
+  exit 1
+fi
+
+echo "Tag v${RELEASE_VERSION} does not exist."
+
 # Handle dryrun mode.
 if [[ "$DRYRUN_RELEASE" == "true" ]]; then
   echo "Dryrun mode has been requested. No new tags or artifacts will be published."
-  DIRECTORY="staging"
+  echo "::set-output name=directory::staging"
 else
-  echo "Dryrun mode has not been requested. Executing in the publish mode."
+  echo "Dryrun mode has not been requested."
+  echo "A new tag will be created, and release artifacts posted to Pypi."
   echo "::set-output name=publish::true"
-  DIRECTORY="deploy"
+  echo "::set-output name=directory::deploy"
+
   if [[ "${SKIP_TWEET}" != "true" ]]; then
     echo "Release will be posted to Twitter."
     echo "::set-output name=tweet::true"
@@ -39,29 +55,12 @@ else
   fi
 fi
 
-# Fetch all tags.
-git fetch --depth=1 origin +refs/tags/*:refs/tags/*
-
-# Check if this release is already tagged.
-git describe --tags v${RELEASE_VERSION} 2> /dev/null
-
-if [[ $? -eq 0 ]]; then
-  echo "Tag v${RELEASE_VERSION} already exists."
-
-  if [[ "${RETRY_RELEASE}" != "true" ]]; then
-    echo "Retry mode has not been requested. Exiting."
-    echo "Label your PR with [release: retry] to build a release from an existing tag."
-    exit 1
-  else
-    echo "Retry mode has been requested. Releasing from the existing tag."
-    echo "::set-output name=reuse_tag::true"
-    # If a tag already exists, we will use it to build artifacts even when
-    # the dryrun mode is requested.
-    DIRECTORY="deploy"
-  fi
-else
-  echo "Tag v${RELEASE_VERSION} does not exist."
-  echo "::set-output name=create_tag::true"
-fi
-
-echo "::set-output name=directory::${DIRECTORY}"
+git fetch origin master --prune --unshallow
+CURRENT_DIR=$(dirname "$0")
+CHANGELOG=`${CURRENT_DIR}/generate_changelog.sh`
+echo "$CHANGELOG"
+FILTERED_CHANGELOG=`echo "$CHANGELOG" | grep -v "\\[info\\]"`
+FILTERED_CHANGELOG="${FILTERED_CHANGELOG//'%'/'%25'}"
+FILTERED_CHANGELOG="${FILTERED_CHANGELOG//$'\n'/'%0A'}"
+FILTERED_CHANGELOG="${FILTERED_CHANGELOG//$'\r'/'%0D'}"
+echo "::set-output name=changelog::${FILTERED_CHANGELOG}"

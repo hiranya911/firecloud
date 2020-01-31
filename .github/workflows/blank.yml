@@ -32,7 +32,6 @@ jobs:
       run: ./.github/scripts/prepare_release.sh
       working-directory: staging
       env:
-        RETRY_RELEASE: ${{ contains(github.event.pull_request.labels.*.name, 'release:retry') }}
         DRYRUN_RELEASE: ${{ contains(github.event.pull_request.labels.*.name, 'release:dryrun') }}
         SKIP_TWEET: ${{ contains(github.event.pull_request.labels.*.name, 'release:skip-tweet') }}
 
@@ -41,46 +40,13 @@ jobs:
       run: echo Installing dependencies
 
     - name: Run tests
-      if: success() && steps.prepare.outputs.create_tag
       working-directory: staging
       run: |
         echo Running unit tests
         echo Running integration tests
 
-    - name: Generate changelog
-      id: changelog
-      if: success() && steps.prepare.outputs.create_tag && steps.prepare.outputs.publish
-      working-directory: staging
-      run: |
-        CHANGELOG=`./.github/scripts/generate_changelog.sh`
-        echo "$CHANGELOG"
-        FILTERED_CHANGELOG=`echo "$CHANGELOG" | grep -v "\\[info\\]"`
-        FILTERED_CHANGELOG="${FILTERED_CHANGELOG//'%'/'%25'}"
-        FILTERED_CHANGELOG="${FILTERED_CHANGELOG//$'\n'/'%0A'}"
-        FILTERED_CHANGELOG="${FILTERED_CHANGELOG//$'\r'/'%0D'}"
-        echo "::set-output name=text::${FILTERED_CHANGELOG}"
-
-    - name: Create release tag
-      if: success() && steps.prepare.outputs.create_tag && steps.prepare.outputs.publish
-      uses: actions/create-release@4d1b6075ce7561b672b8552148edec2f27584fe9
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ steps.prepare.outputs.version }}
-        release_name: FirCloud ${{ steps.prepare.outputs.version }}
-        body: ${{ steps.changelog.outputs.text }}
-        draft: false
-        prerelease: false
-
-    - name: Checkout source for deployment
-      uses: actions/checkout@v2
-      if: steps.prepare.outputs.publish || steps.prepare.outputs.reuse_tag
-      with:
-        ref: ${{ steps.prepare.outputs.version }}
-        path: deploy
-
     - name: Build release artifacts
-      working-directory: ${{ steps.prepare.outputs.directory }}
+      working-directory: staging
       run: |
         echo Building release artifacts
         mkdir -p dist
@@ -90,7 +56,20 @@ jobs:
       uses: actions/upload-artifact@v1
       with:
         name: dist
-        path: ${{ steps.prepare.outputs.directory }}/dist
+        path: staging/dist
+
+    - name: Create release tag
+      if: success() && steps.prepare.outputs.publish
+      # https://github.com/actions/create-release/pull/32
+      uses: fleskesvor/create-release@1a72e235c178bf2ae6c51a8ae36febc24568c5fe
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.prepare.outputs.version }}
+        release_name: FirCloud ${{ steps.prepare.outputs.version }}
+        body: ${{ steps.prepare.outputs.changelog }}
+        draft: false
+        prerelease: false
 
     - name: Publish to Pypi
       if: success() && steps.prepare.outputs.publish
@@ -100,3 +79,4 @@ jobs:
     - name: Post to Twitter
       if: success() && steps.prepare.outputs.tweet
       run: echo Posting Tweet
+      continue-on-error: true
