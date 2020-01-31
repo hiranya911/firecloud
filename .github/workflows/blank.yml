@@ -20,6 +20,7 @@ jobs:
       uses: actions/checkout@v2
       with:
         path: staging
+        fetch-depth: 0
 
     - name: Set up Python
       uses: actions/setup-python@v1
