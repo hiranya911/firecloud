@@ -28,7 +28,7 @@ jobs:
 
     # Checkout source.
     steps:
-    - name: Checkout source for staging
+    - name: Checkout source
       uses: actions/checkout@v2
 
     - name: Set up Python
