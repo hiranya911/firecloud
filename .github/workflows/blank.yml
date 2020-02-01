@@ -12,7 +12,8 @@ on:
 
 jobs:
   publish_release:
-    # Only run the workflow when a pull request has been:
+    # Only run the workflow when explicitly requested by a developer or when a PR
+    # has been:
     # 1. merged to the master branch
     # 2. baring the label 'release:pending', and
     # 3. the title prefix '[chore] Release'.
@@ -36,6 +37,10 @@ jobs:
     # Handle additional options/labels passed with the release PR.
     # 1. release:dryrun - Dry run the release process without publishing new tags or artifacts.
     # 2. release:skip-tweet - Complete the release process without posting to Twitter.
+    #
+    # Any release explicitly requested will be considered to be in the dryrun mode.
+    # This is because any developer with write access to the repo can trigger this event
+    # without additional review.
     - name: Prepare release
       id: prepare
       run: ./.github/scripts/prepare_release.sh

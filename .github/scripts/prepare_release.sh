@@ -34,23 +34,6 @@ fi
 echo "Extracted release version: ${RELEASE_VERSION}"
 echo "::set-output name=version::v${RELEASE_VERSION}"
 
-# Fetch all tags.
-git fetch --depth=1 origin +refs/tags/*:refs/tags/*
-
-# Check if this release is already tagged.
-EXISTING_TAG=`git rev-parse -q --verify "refs/tags/v${RELEASE_VERSION}"` || true
-if [[ -n "${EXISTING_TAG}" ]]; then
-  RELEASE_URL="https://github.com/hiranya911/firecloud/releases/tag/v${RELEASE_VERSION}"
-  echo "Tag v${RELEASE_VERSION} already exists. Exiting."
-  echo "If the tag was created in a previous unsuccessful attempt, delete it and try again."
-  echo "Delete any corresponding releases at ${RELEASE_URL}."
-  echo "  $ git tag -d v${RELEASE_VERSION}"
-  echo "  $ git push --delete origin v${RELEASE_VERSION}"
-  exit 1
-fi
-
-echo "Tag v${RELEASE_VERSION} does not exist."
-
 # Handle dryrun mode.
 if [[ "$DRYRUN_RELEASE" == "true" ]]; then
   echo "Dryrun mode has been requested. No new tags or artifacts will be published."
@@ -65,6 +48,26 @@ else
   else
     echo "Skip Tweet mode has been requested. Release will not be posted to Twitter."
   fi
+fi
+
+# Fetch all tags.
+git fetch --depth=1 origin +refs/tags/*:refs/tags/*
+
+# Check if this release is already tagged.
+EXISTING_TAG=`git rev-parse -q --verify "refs/tags/v${RELEASE_VERSION}"` || true
+if [[ -n "${EXISTING_TAG}" ]]; then
+  if [[ "${DRYRUN_RELEASE}" != "true" ]]; then
+    RELEASE_URL="https://github.com/hiranya911/firecloud/releases/tag/v${RELEASE_VERSION}"
+    echo "Tag v${RELEASE_VERSION} already exists. Exiting."
+    echo "If the tag was created in a previous unsuccessful attempt, delete it and try again."
+    echo "Delete any corresponding releases at ${RELEASE_URL}."
+    echo "  $ git tag -d v${RELEASE_VERSION}"
+    echo "  $ git push --delete origin v${RELEASE_VERSION}"
+    exit 1
+  fi
+  echo "Tag v${RELEASE_VERSION} already exists. Ignoring in the dryrun mode."
+else
+  echo "Tag v${RELEASE_VERSION} does not exist."
 fi
 
 # Fetch history of the master branch.
