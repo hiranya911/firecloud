@@ -6,6 +6,9 @@ on:
       - master
     types:
       - closed
+  repository_dispatch:
+    types:
+      - firebase_release
 
 jobs:
   publish_release:
@@ -36,7 +39,8 @@ jobs:
       id: prepare
       run: ./.github/scripts/prepare_release.sh
       env:
-        DRYRUN_RELEASE: ${{ contains(github.event.pull_request.labels.*.name, 'release:dryrun') }}
+        DRYRUN_RELEASE: ${{ contains(github.event.pull_request.labels.*.name, 'release:dryrun') ||
+          github.event.action == 'firebase_release' }}
         SKIP_TWEET: ${{ contains(github.event.pull_request.labels.*.name, 'release:skip-tweet') }}
 
     - name: Install dependencies

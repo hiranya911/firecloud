@@ -13,6 +13,8 @@
 set -e
 set -u
 
+echo "Running release workflow at revision: ${GITHUB_SHA}"
+echo "Workflow triggered by: ${GITHUB_ACTOR}"
 echo "[release:dryrun]: ${DRYRUN_RELEASE}"
 echo "[release:skip-tweet]: ${SKIP_TWEET}"
 echo ""
