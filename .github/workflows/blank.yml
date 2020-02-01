@@ -16,9 +16,10 @@ jobs:
     # 1. merged to the master branch
     # 2. baring the label 'release:pending', and
     # 3. the title prefix '[chore] Release'.
-    if: github.event.pull_request.merged &&
+    if: github.event.action == 'firebase_release' ||
+      (github.event.pull_request.merged &&
       contains(github.event.pull_request.labels.*.name, 'release:pending') &&
-      startsWith(github.event.pull_request.title, '[chore] Release')
+      startsWith(github.event.pull_request.title, '[chore] Release'))
 
     runs-on: ubuntu-latest
 
