@@ -11,7 +11,7 @@ on:
 
   repository_dispatch:
     types:
-      - firebase_release
+      - firebase_rc_requested
 
 jobs:
   publish_release:
@@ -19,7 +19,7 @@ jobs:
     #   1. merged
     #   2. baring the label 'release:pending', and
     #   3. the title prefix '[chore] Release'.
-    if: github.event.action == 'firebase_release' ||
+    if: github.event.action == 'firebase_rc_requested' ||
       (github.event.pull_request.merged &&
       contains(github.event.pull_request.labels.*.name, 'release:pending') &&
       startsWith(github.event.pull_request.title, '[chore] Release'))
@@ -37,18 +37,17 @@ jobs:
         python-version: 3.6
 
     # Handle additional options/labels passed with the release PR.
-    #   1. release:dryrun - Dry run the release process without publishing new tags or artifacts.
+    #   1. release:dry-run - Dry run the release process without publishing new tags or artifacts.
     #   2. release:skip-tweet - Complete the release process without posting to Twitter.
     #
     # Any explicitly requested release is considered to be in the dryrun mode. This is because
     # any developer with write access to the repo can trigger this event without a review.
-    - name: Prepare release
+    - name: Preflight check
       id: prepare
       run: ./.github/scripts/prepare_release.sh
       env:
-        DRYRUN_RELEASE: ${{ contains(github.event.pull_request.labels.*.name, 'release:dryrun') ||
-          github.event.action == 'firebase_release' }}
-        SKIP_TWEET: ${{ contains(github.event.pull_request.labels.*.name, 'release:skip-tweet') }}
+        LABEL_DRY_RUN: ${{ contains(github.event.pull_request.labels.*.name, 'release:dry-run') }}
+        LABEL_SKIP_TWEET: ${{ contains(github.event.pull_request.labels.*.name, 'release:skip-tweet') }}
 
     - name: Install dependencies
       run: echo Installing dependencies
