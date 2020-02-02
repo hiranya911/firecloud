@@ -48,6 +48,9 @@ if [[ -z "${LABEL_SKIP_TWEET:-}" ]]; then
 fi
 
 
+env
+
+
 echo_info "Starting release preflight..."
 echo_info "Git revision          : ${GITHUB_SHA}"
 echo_info "Workflow triggered by : ${GITHUB_ACTOR}"
@@ -92,7 +95,7 @@ DRY_RUN_RELEASE=0
 if [[ "${LABEL_DRY_RUN}" == "true" ]]; then
   DRY_RUN_RELEASE=1
   echo_info "Dry run label is set."
-elif [[ "${GITHUB_EVENT_NAME}" == "firebase_rc_requested" ]]; then
+elif [[ "${GITHUB_EVENT_NAME}" == "repository_dispatch" ]]; then
   DRY_RUN_RELEASE=1
   echo_info "Workflow manually triggered via repository dispatch."
 fi
