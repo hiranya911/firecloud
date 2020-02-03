@@ -12,7 +12,7 @@ on:
       - firebase_build
 
 jobs:
-  publish_release:
+  stage_release:
     # If triggered by a PR it must be:
     #   1. merged
     #   2. baring the label 'release:pending', and
@@ -37,6 +37,13 @@ jobs:
       with:
         python-version: 3.6
 
+    - name: Enable publish mode
+      id: check_publish
+      if: github.ref == 'master' &&
+        github.event.pull_request.merged &&
+        startsWith(github.event.pull_request.title, '[chore] Release ')
+      run: echo ::set-env name=FIREBASE_PUBLISH::true
+
     # Handle additional options/labels passed with the release PR.
     #   1. release:dry-run - Dry run the release process without publishing new tags or artifacts.
     #   2. release:skip-tweet - Complete the release process without posting to Twitter.
@@ -46,10 +53,6 @@ jobs:
     - name: Preflight check
       id: prepare
       run: ./.github/scripts/prepare_release.sh
-      env:
-        FIREBASE_GIT_REF: ${{ github.event.client_payload.ref }}
-        FIREBASE_LABEL_TWEET: ${{ contains(github.event.pull_request.labels.*.name, 'release:tweet') }}
-        FIREBASE_PR_TITLE: ${{ github.event.pull_request.title }}
 
     - name: Install dependencies
       run: echo Installing dependencies
@@ -75,7 +78,7 @@ jobs:
     # custom fork of a contributor until https://github.com/actions/create-release/pull/32
     # is merged. Also note that v1 of this action does not support the "body" parameter.
     - name: Create release tag
-      if: success() && steps.prepare.outputs.publish
+      if: success() && env.FIREBASE_PUBLISH
       uses: fleskesvor/create-release@1a72e235c178bf2ae6c51a8ae36febc24568c5fe
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -88,11 +91,12 @@ jobs:
 
     # If not executing in the dryrun mode, publish the packagted artifacts to Pypi.
     - name: Publish to Pypi
-      if: success() && steps.prepare.outputs.publish
+      if: success() && env.FIREBASE_PUBLISH
       run: echo Publishing to Pypi
 
     # If the Tweet is not suppressed, post to Twitter.
     - name: Post to Twitter
-      if: success() && steps.prepare.outputs.tweet
+      if: success() && env.FIREBASE_PUBLISH &&
+        contains(github.event.pull_request.labels.*.name, 'release:tweet')
       run: echo Posting Tweet
       continue-on-error: true
