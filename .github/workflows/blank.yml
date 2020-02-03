@@ -1,8 +1,8 @@
 name: Release
 
 on:
-  # Only run the workflow when a PR is closed on the master branch, or when a
-  # developer explicitly requests it.
+  # Only run the workflow when a PR is closed, or when a developer explicitly requests
+  # it by sending a 'firebase_build' event.
   pull_request:
     types:
       - closed
@@ -13,10 +13,7 @@ on:
 
 jobs:
   stage_release:
-    # If triggered by a PR it must be:
-    #   1. merged
-    #   2. baring the label 'release:pending', and
-    #   3. the title prefix '[chore] Release'.
+    # If triggered by a PR it must be merged while baring the label 'release:build'.
     if: github.event.action == 'firebase_build' ||
       (github.event.pull_request.merged &&
       contains(github.event.pull_request.labels.*.name, 'release:build'))
@@ -25,8 +22,6 @@ jobs:
 
     # Checkout source.
     steps:
-    - run: echo ${{ github.event.client_payload.ref || github.ref }}
-
     - name: Checkout source
       uses: actions/checkout@v2
       with:
@@ -36,23 +31,6 @@ jobs:
       uses: actions/setup-python@v1
       with:
         python-version: 3.6
-
-    - name: Enable publish mode
-      id: check_publish
-      if: github.ref == 'master' &&
-        github.event.pull_request.merged &&
-        startsWith(github.event.pull_request.title, '[chore] Release ')
-      run: echo ::set-env name=FIREBASE_PUBLISH::true
-
-    # Handle additional options/labels passed with the release PR.
-    #   1. release:dry-run - Dry run the release process without publishing new tags or artifacts.
-    #   2. release:skip-tweet - Complete the release process without posting to Twitter.
-    #
-    # Any explicitly requested release is considered to be in the dryrun mode. This is because
-    # any developer with write access to the repo can trigger this event without a review.
-    - name: Preflight check
-      id: prepare
-      run: ./.github/scripts/prepare_release.sh
 
     - name: Install dependencies
       run: echo Installing dependencies
@@ -74,6 +52,19 @@ jobs:
         name: dist
         path: dist
 
+    # Check whether the release should be published. We publish only when the trigger PR is
+    #   1. merged
+    #   2. to the master branch
+    #   3. with a title prefix '[chore] Release '.
+    - name: Publish preflight check
+      if: success() && github.event.pull_request.merged &&
+        github.ref == 'master' &&
+        startsWith(github.event.pull_request.title, '[chore] Release ')
+      id: prepare
+      run: |
+        ./.github/scripts/prepare_release.sh
+        echo ::set-env name=FIREBASE_PUBLISH::true
+
     # Tag the release if not executing in the dryrun mode. We pull this action froma
     # custom fork of a contributor until https://github.com/actions/create-release/pull/32
     # is merged. Also note that v1 of this action does not support the "body" parameter.
@@ -89,12 +80,12 @@ jobs:
         draft: false
         prerelease: false
 
-    # If not executing in the dryrun mode, publish the packagted artifacts to Pypi.
+    # Publish the packaged artifacts to Pypi.
     - name: Publish to Pypi
       if: success() && env.FIREBASE_PUBLISH
       run: echo Publishing to Pypi
 
-    # If the Tweet is not suppressed, post to Twitter.
+    # Post to Twitter if explicitly opted-in.
     - name: Post to Twitter
       if: success() && env.FIREBASE_PUBLISH &&
         contains(github.event.pull_request.labels.*.name, 'release:tweet')
