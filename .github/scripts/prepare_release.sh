@@ -39,24 +39,28 @@ function terminate() {
 }
 
 
-if [[ -z "${LABEL_DRY_RUN:-}" ]]; then
-    LABEL_DRY_RUN="false"
+if [[ -z "${FIREBASE_GIT_REF:-}" ]]; then
+    FIREBASE_GIT_REF="${GITHUB_REF}"
 fi
 
-if [[ -z "${LABEL_SKIP_TWEET:-}" ]]; then
-    LABEL_SKIP_TWEET="false"
+if [[ -z "${FIREBASE_LABEL_TWEET:-}" ]]; then
+    FIREBASE_LABEL_TWEET="false"
 fi
 
-
-env
+if [[ -z "${FIREBASE_PR_TITLE:-}"  ]]; then
+    FIREBASE_PR_TITLE=""
+fi
 
 
 echo_info "Starting release preflight..."
 echo_info "Git revision          : ${GITHUB_SHA}"
+echo_info "Git ref               : ${FIREBASE_GIT_REF}"
 echo_info "Workflow triggered by : ${GITHUB_ACTOR}"
 echo_info "GitHub event          : ${GITHUB_EVENT_NAME}"
-echo_info "Label dry run         : ${LABEL_DRY_RUN}"
-echo_info "Label skip Tweet      : ${LABEL_SKIP_TWEET}"
+if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+    echo_info "Pull request title    : ${FIREBASE_PR_TITLE}"
+    echo_info "Label Tweet           : ${FIREBASE_LABEL_TWEET}"
+fi
 
 
 echo_info ""
@@ -90,29 +94,40 @@ echo_info "Processing workflow options"
 echo_info "--------------------------------------------"
 echo_info ""
 
-DRY_RUN_RELEASE=0
+PUBLISH_MODE=0
 
-if [[ "${LABEL_DRY_RUN}" == "true" ]]; then
-  DRY_RUN_RELEASE=1
-  echo_info "Dry run label is set."
-elif [[ "${GITHUB_EVENT_NAME}" == "repository_dispatch" ]]; then
-  DRY_RUN_RELEASE=1
-  echo_info "Workflow manually triggered via repository dispatch."
+if [[ "${GITHUB_EVENT_NAME}" == "repository_dispatch" ]]; then
+    echo_info "Workflow manually triggered via repository dispatch."
+elif [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+    if [[ "$GITHUB_REF" == "master" ]]; then
+        readonly CHORE=`echo "${FIREBASE_PR_TITLE}" | grep "^\\[chore\\] Release .*"` || true
+        if [[ -n "${CHORE}" ]]; then
+            echo_info "Pull request title (${CHORE}) indicates intention to publish."
+            PUBLISH_MODE=1
+        else
+            echo_info "Pull request title does not indicate intention to publish."
+        fi
+    else
+        echo_info "Git ref (${GITHUB_REF}) is not eligible for publishing."
+    fi
+else
+    echo_warn "Unsupported GitHub event: ${GITHUB_EVENT_NAME}"
+    terminate
 fi
 
-if [[ $DRY_RUN_RELEASE -eq 0 ]]; then
-  echo_info "A new tag will be created, and release artifacts posted to Pypi."
-  echo "::set-output name=publish::true"
+if [[ $PUBLISH_MODE -eq 1 ]]; then
+    echo_info "This is NOT a drill."
+    echo_info "A new tag will be created, and release artifacts posted to Pypi."
+    echo "::set-output name=publish::true"
 
-  if [[ "${LABEL_SKIP_TWEET}" == "true" ]]; then
-    echo_info "Skip Tweet level is set."
-    echo_info "Release will not be posted to Twitter."
-  else
-    echo_info "Release will be posted to Twitter upon successful completion."
-    echo "::set-output name=tweet::true"
-  fi
+    if [[ "${FIREBASE_LABEL_TWEET}" == "true" ]]; then
+        echo_info "Release will be posted to Twitter upon successful completion."
+        echo "::set-output name=tweet::true"
+    else
+        echo_info "Release will not be posted to Twitter."
+    fi
 else
-  echo_info "Executing a dry run. No new tags or artifacts will be published."
+    echo_info "Executing a dry run. No new tags or artifacts will be published."
 fi
 
 
@@ -128,7 +143,7 @@ echo ""
 
 readonly EXISTING_TAG=`git rev-parse -q --verify "refs/tags/v${RELEASE_VERSION}"` || true
 if [[ -n "${EXISTING_TAG}" ]]; then
-  if [[ ${DRY_RUN_RELEASE} -eq 0 ]]; then
+  if [[ ${PUBLISH_MODE} -eq 1 ]]; then
     echo_warn "Tag v${RELEASE_VERSION} already exists."
     echo_warn "If the tag was created in a previous failed attempt, delete it and try again."
     echo_warn "   $ git tag -d v${RELEASE_VERSION}"
