@@ -4,14 +4,12 @@ on:
   # Only run the workflow when a PR is closed on the master branch, or when a
   # developer explicitly requests it.
   pull_request:
-    branches:
-      - master
     types:
       - closed
 
   repository_dispatch:
     types:
-      - firebase_rc_requested
+      - firebase_build
 
 jobs:
   publish_release:
@@ -19,17 +17,20 @@ jobs:
     #   1. merged
     #   2. baring the label 'release:pending', and
     #   3. the title prefix '[chore] Release'.
-    if: github.event.action == 'firebase_rc_requested' ||
+    if: github.event.action == 'firebase_build' ||
       (github.event.pull_request.merged &&
-      contains(github.event.pull_request.labels.*.name, 'release:pending') &&
-      startsWith(github.event.pull_request.title, '[chore] Release'))
+      contains(github.event.pull_request.labels.*.name, 'release:build'))
 
     runs-on: ubuntu-latest
 
     # Checkout source.
     steps:
+    - run: echo ${{ github.event.client_payload.ref || github.ref }}
+
     - name: Checkout source
       uses: actions/checkout@v2
+      with:
+        ref: ${{ github.event.client_payload.ref || github.ref }}
 
     - name: Set up Python
       uses: actions/setup-python@v1
@@ -46,8 +47,9 @@ jobs:
       id: prepare
       run: ./.github/scripts/prepare_release.sh
       env:
-        LABEL_DRY_RUN: ${{ contains(github.event.pull_request.labels.*.name, 'release:dry-run') }}
-        LABEL_SKIP_TWEET: ${{ contains(github.event.pull_request.labels.*.name, 'release:skip-tweet') }}
+        FIREBASE_GIT_REF: ${{ github.event.client_payload.ref }}
+        FIREBASE_LABEL_TWEET: ${{ contains(github.event.pull_request.labels.*.name, 'release:tweet') }}
+        FIREBASE_PR_TITLE: ${{ github.event.pull_request.title }}
 
     - name: Install dependencies
       run: echo Installing dependencies
