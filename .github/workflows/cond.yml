@@ -6,12 +6,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - run: |
-        echo Job 1
-        exit 1
+        mkdir dist
+        echo result > dist/output.txt
+    - uses: actions/upload-artifact@v1
+      with:
+        name: dist
+        path: dist
     
   job2:
     runs-on: ubuntu-latest
     needs: job1
-    if: github.event.client_payload.job2
     steps:
-    - run: echo Job 2
+    - uses: actions/download-artifact@v1
+      with:
+        name: dist
+    - run: |
+        ls
+        ls dist
+        cat dist/output.txt
