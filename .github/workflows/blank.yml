@@ -42,7 +42,7 @@ jobs:
       run: echo Installing dependencies
 
     - name: Run unit tests
-      run: Running tests
+      run: echo Running tests
 
     # Build the Python Wheel and the source distribution.
     - name: Package release artifacts
