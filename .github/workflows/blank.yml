@@ -15,107 +15,15 @@
 name: Release Candidate
 
 on:
-  # Only run the workflow when a PR is updated or when a developer explicitly requests
-  # a build by sending a 'firebase_build' event.
   pull_request:
     types: [opened, synchronize, closed]
 
 jobs:
-  stage_release:
-    # If triggered by a PR it must contain the label 'release:build'.
-    if: contains(github.event.pull_request.labels.*.name, 'release:build')
-
-    runs-on: ubuntu-latest
-
-    # When manually triggering the build, the requester can specify a target branch or a tag
-    # via the 'ref' client parameter.
+  merge_to_target:
     steps:
     - name: Checkout source for staging
       uses: actions/checkout@v2
 
-    - name: Set up Python
-      uses: actions/setup-python@v1
-      with:
-        python-version: 3.6
+    - name: Merge to target
+      run: ./.github/scripts/merge_to_target.sh
 
-    - name: Install dependencies
-      run: echo Installing dependencies
-
-    - name: Run unit tests
-      run: echo Running tests
-
-    # Build the Python Wheel and the source distribution.
-    - name: Package release artifacts
-      run: |
-        mkdir dist
-        echo "result" > dist/output.txt
-
-    # Attach the packaged artifacts to the workflow output. These can be manually
-    # downloaded for later inspection if necessary.
-    - name: Archive artifacts
-      uses: actions/upload-artifact@v1
-      with:
-        name: dist
-        path: dist
-
-  publish_release:
-    needs: stage_release
-
-    # Check whether the release should be published. We publish only when the trigger PR is
-    #   1. merged
-    #   2. to the master branch
-    #   3. with the title prefix '[chore] Release '.
-    if: github.event.pull_request.merged &&
-      github.ref == 'master' &&
-      startsWith(github.event.pull_request.title, '[chore] Release ')
-
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout source for publish
-      uses: actions/checkout@v2
-
-    # Download the artifacts created by the stage_release job.
-    - name: Download release candidates
-      uses: actions/download-artifact@v1
-      with:
-        name: dist
-
-    # Python is needed to run Twine and some of the preflight checks.
-    - name: Set up Python
-      uses: actions/setup-python@v1
-      with:
-        python-version: 3.6
-
-    - name: Install dependencies
-      run: echo Installing dependencies
-
-    - name: Publish preflight check
-      id: preflight
-      run: ./.github/scripts/prepare_release.sh
-
-    # We pull this action from a custom fork of a contributor until
-    # https://github.com/actions/create-release/pull/32 is merged. Also note that v1 of
-    # this action does not support the "body" parameter.
-    - name: Create release tag
-      uses: fleskesvor/create-release@1a72e235c178bf2ae6c51a8ae36febc24568c5fe
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ steps.preflight.outputs.version }}
-        release_name: FireCloud ${{ steps.preflight.outputs.version }}
-        body: ${{ steps.preflight.outputs.changelog }}
-        draft: false
-        prerelease: false
-
-    - name: Publish to Pypi
-      run: |
-        echo Publishing to Pypi
-        ls -l dist/
-
-    # Post to Twitter if explicitly opted-in by adding the label 'release:tweet'.
-    - name: Post to Twitter
-      if: success() &&
-        contains(github.event.pull_request.labels.*.name, 'release:tweet')
-      run: echo Posting Tweet
-      continue-on-error: true
