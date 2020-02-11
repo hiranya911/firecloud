@@ -28,4 +28,5 @@ jobs:
 
     - name: Merge to target
       run: ./.github/scripts/merge_to_target.sh
-
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
