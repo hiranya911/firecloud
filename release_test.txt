@@ -7,3 +7,5 @@ Test 6: Should pick up from last tag (0.0.1)
 Test 7: Trigger a release
 Test 8: Another release
 Test 9: Dry run check
+
+Test 10: Release from branch
