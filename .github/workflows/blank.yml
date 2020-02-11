@@ -16,10 +16,12 @@ name: Release Candidate
 
 on:
   pull_request:
-    types: [opened, synchronize, closed]
+    types: closed
 
 jobs:
   merge_to_target:
+    if: github.event.pull_request.merged
+    runs-on: ubuntu-latest
     steps:
     - name: Checkout source for staging
       uses: actions/checkout@v2
