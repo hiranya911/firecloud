@@ -29,11 +29,11 @@ function terminate() {
 }
 
 
-echo_info "Starting release preflight..."
-echo_info "Git revision          : ${GITHUB_SHA}"
-echo_info "Workflow triggered by : ${GITHUB_ACTOR}"
-echo_info "GitHub event          : ${GITHUB_EVENT_NAME}"
-echo_info "GitHub ref            : ${GITHUB_REF}"
+# echo_info "Starting release preflight..."
+# echo_info "Git revision          : ${GITHUB_SHA}"
+# echo_info "Workflow triggered by : ${GITHUB_ACTOR}"
+# echo_info "GitHub event          : ${GITHUB_EVENT_NAME}"
+# echo_info "GitHub ref            : ${GITHUB_REF}"
 echo_info "Pull request          : ${PR_NUMBER}"
 
 
@@ -44,8 +44,8 @@ echo_info "--------------------------------------------"
 echo_info ""
 
 readonly COMMENTS_URL="https://api.github.com/repos/hiranya911/firecloud/issues/${PR_NUMBER}/comments"
-readonly STATUS=" github-actions\\[bot\\] Staging successful at"
-readonly JQ_PATTERN=".[-1] | (.id|tostring) + \" \" + .user.login + \" \" + .body[0:50]"
+readonly STATUS="github-actions\\[bot\\] Staging successful at"
+readonly JQ_PATTERN=".[-1] | .user.login + \" \" + .body[0:50]"
 readonly STATUS_UPDATED=`curl -s ${COMMENTS_URL} | jq -r "${JQ_PATTERN}" | grep "${STATUS}"` || true
 if [[ -z "${STATUS_UPDATED}" ]]; then
   echo_warn "Staging process clearance not found."
