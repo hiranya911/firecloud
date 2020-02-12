@@ -49,7 +49,7 @@ readonly LAST_COMMIT=`jq -r ".[-1].sha" commits.out` || true
 echo_info "Last commit in the release PR: ${LAST_COMMIT}"
 
 # Find the comments made by the github-actions[bot].
-echo_info "Loading comments from ${COMMENT_URL}"
+echo_info "Loading comments from ${COMMENTS_URL}"
 curl ${COMMENTS_URL} -s -H "Authorization: Bearer ${GITHUB_TOKEN}" -o comments.out
 
 # Check if the last commit on the PR has been successfully staged.
