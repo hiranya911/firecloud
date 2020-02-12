@@ -33,6 +33,7 @@ echo_info "Starting release preflight..."
 echo_info "Git revision          : ${GITHUB_SHA}"
 echo_info "Workflow triggered by : ${GITHUB_ACTOR}"
 echo_info "GitHub event          : ${GITHUB_EVENT_NAME}"
+echo_info "GitHub ref            : ${GITHUB_REF}"
 
 
 echo_info ""
