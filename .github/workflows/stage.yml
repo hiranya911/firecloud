@@ -73,7 +73,7 @@ jobs:
           -s \
           -H 'Authorization: Bearer $GITHUB_TOKEN' \
           --data '{"body": "$MESSAGE"}'
-      with:
+      env:
         COMMENTS_URL: ${{ github.event.pull_request.comments_url }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         MESSAGE: Staging successful at ${{ github.event.pull_request.head.sha }}
