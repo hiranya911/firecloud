@@ -9,3 +9,4 @@ Test 8: Another release
 Test 9: Dry run check
 
 Test 10: Release from branch
+Test 11: Here goes nothing...
