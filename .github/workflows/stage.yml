@@ -66,14 +66,9 @@ jobs:
         path: dist
 
     # If triggered by a pull request, add a comment to it indicating success.
-    - name: Comment PR
+    - name: Add comment
       if: github.event.pull_request
-      run: |
-        curl -v ${COMMENTS_URL} \
-          -s \
-          -H "Authorization: Bearer $GITHUB_TOKEN" \
-          -H "Content-type: application/json" \
-          --data '{"body": "$MESSAGE"}'
+      run: ./.github/scripts/update_pull_request.sh
       env:
         COMMENTS_URL: ${{ github.event.pull_request.comments_url }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
