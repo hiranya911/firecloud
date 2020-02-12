@@ -70,5 +70,7 @@ jobs:
       if: always()
       run: ./.github/scripts/update_pull_request.sh
       env:
+        COMMENTS_URL: ${{ github.event.pull_request.comments_url }}
+        HEAD_COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
         STAGING_SUCCESSFUL: ${{ steps.artifacts.outputs.status }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

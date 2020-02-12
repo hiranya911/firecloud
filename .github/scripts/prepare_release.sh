@@ -29,12 +29,11 @@ function terminate() {
 }
 
 
-# echo_info "Starting release preflight..."
-# echo_info "Git revision          : ${GITHUB_SHA}"
-# echo_info "Workflow triggered by : ${GITHUB_ACTOR}"
-# echo_info "GitHub event          : ${GITHUB_EVENT_NAME}"
-# echo_info "GitHub ref            : ${GITHUB_REF}"
-echo_info "Pull request          : ${PR_NUMBER}"
+echo_info "Starting release preflight..."
+echo_info "Git revision          : ${GITHUB_SHA}"
+echo_info "Workflow triggered by : ${GITHUB_ACTOR}"
+echo_info "GitHub event          : ${GITHUB_EVENT_NAME}"
+echo_info "GitHub ref            : ${GITHUB_REF}"
 
 
 echo_info ""
@@ -43,15 +42,32 @@ echo_info "Checking staging status"
 echo_info "--------------------------------------------"
 echo_info ""
 
-readonly COMMENTS_URL="https://api.github.com/repos/hiranya911/firecloud/issues/${PR_NUMBER}/comments"
-readonly STATUS="github-actions\\[bot\\] Staging successful at"
-readonly JQ_PATTERN=".[-1] | .user.login + \" \" + .body[0:50]"
-readonly STATUS_UPDATED=`curl -s ${COMMENTS_URL} | jq -r "${JQ_PATTERN}" | grep "${STATUS}"` || true
-if [[ -z "${STATUS_UPDATED}" ]]; then
+curl ${COMMENTS_URL} -s -H "Authorization: Bearer ${GITHUB_TOKEN}" > comments.out
+
+# Find the last comment made by the github-actions[bot]
+readonly JQ_PATTERN="[.[] | select(.user.login==\"github-actions[bot]\").body] | last"
+readonly LAST_COMMENT=`jq -r "${JQ_PATTERN}" comments.out` || true
+readonly SUCCESS_PATTERN="^Staging successful at .*$"
+if [[ "${LAST_COMMENT}" == "null" ]]; then
   echo_warn "Staging process clearance not found."
   terminate
-else
-  echo_info "Staging process cleared: ${STATUS_UPDATED}"
+elif ! [[ "${LAST_COMMENT}" =~ ${SUCCESS_PATTERN} ]]; then
+  echo_warn "Staging process failed: ${LAST_COMMENT}"
+  terminate
+fi
+
+readonly LAST_STAGED_COMMIT=`echo ${LAST_COMMENT} | awk '{print $NF}'`
+echo_info "Release last staged at: ${LAST_STAGED_COMMIT}"
+
+curl ${COMMITS_URL} -s -H "Authorization: Bearer ${GITHUB_TOKEN}" > commits.out
+
+# Find the last commit made on the PR.
+readonly LAST_COMMIT=`jq -r ".[-1].sha" commits.out` || true
+echo_info "Last commit in the release PR: ${LAST_COMMIT}"
+
+if [[ "${LAST_STAGED_COMMIT}" != "${LAST_COMMIT}" ]]; then
+  echo_warn "Last commit on the PR does not match the last staged."
+  terminate
 fi
 
 

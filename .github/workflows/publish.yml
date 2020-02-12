@@ -50,7 +50,9 @@ jobs:
       id: preflight
       run: ./.github/scripts/prepare_release.sh
       env:
-        PR_NUMBER: ${{ github.event.pull_request.number }}
+        COMMITS_URL: ${{ github.event.pull_request.commits_url }}
+        COMMENTS_URL: ${{ github.event.pull_request.comments_url }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     # We pull this action from a custom fork of a contributor until
     # https://github.com/actions/create-release/pull/32 is merged. Also note that v1 of
