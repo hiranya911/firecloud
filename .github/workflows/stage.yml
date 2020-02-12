@@ -51,9 +51,11 @@ jobs:
       run: echo Running tests
 
     - name: Package release artifacts
+      id: artifacts
       run: |
         mkdir -p dist
         echo Hello World > dist/output.txt
+        echo ::set-output name=status::true
 
     # Attach the packaged artifacts to the workflow output. These can be manually
     # downloaded for later inspection if necessary.
@@ -64,9 +66,9 @@ jobs:
         path: dist
 
     - name: Update PR status
-      if: success() || failure()
+      if: always()
       run: ./.github/scripts/update_pull_request.sh
       env:
         PR_NUMBER: ${{ github.event.pull_request.number }}
-        STAGING_SUCCESSFUL: ${{ success() }}
+        STAGING_SUCCESSFUL: ${{ steps.artifacts.outputs.status }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
