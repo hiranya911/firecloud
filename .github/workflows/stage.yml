@@ -18,7 +18,7 @@ on:
   # Only run the workflow when a PR is updated or when a developer explicitly requests
   # a build by sending a 'firebase_build' event.
   pull_request:
-    types: [opened, synchronize, labeled]
+    types: [opened, synchronize]
 
   repository_dispatch:
     types:
@@ -45,14 +45,18 @@ jobs:
       run: |
         echo Installing dependencies
         echo Triggered by ${{ github.event.action }}
+        echo Reviews ${{github.event.pull_request.reviews.*.body}}
 
     - name: Run unit tests
-      run: echo Running tests
+      run: |
+        echo Running tests
 
     - name: Package release artifacts
+      id: artifacts
       run: |
         mkdir -p dist
         echo Hello World > dist/output.txt
+        echo ::set-output name=status::true
 
     # Attach the packaged artifacts to the workflow output. These can be manually
     # downloaded for later inspection if necessary.
@@ -61,3 +65,10 @@ jobs:
       with:
         name: dist
         path: dist
+
+    - name: Update PR status
+      if: always()
+      run: ./.github/scripts/update_pull_request.sh
+      env:
+        STAGING_SUCCESSFUL: ${{ steps.artifacts.outputs.status }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
