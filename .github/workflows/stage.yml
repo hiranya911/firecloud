@@ -50,7 +50,6 @@ jobs:
     - name: Run unit tests
       run: |
         echo Running tests
-        exit 1
 
     - name: Package release artifacts
       id: artifacts
@@ -71,6 +70,5 @@ jobs:
       if: always()
       run: ./.github/scripts/update_pull_request.sh
       env:
-        PR_NUMBER: ${{ github.event.pull_request.number }}
         STAGING_SUCCESSFUL: ${{ steps.artifacts.outputs.status }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

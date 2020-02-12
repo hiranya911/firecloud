@@ -3,6 +3,7 @@
 set -e
 set -u
 
+readonly PR_NUMBER=`echo ${GITHUB_REF} | awk -F/ '{print $3}'`
 readonly COMMENTS_URL="https://api.github.com/repos/hiranya911/firecloud/issues/${PR_NUMBER}/comments"
 readonly STATUS=" github-actions\\[bot\\] Staging successful$"
 readonly JQ_PATTERN=".[] | (.id|tostring) + \" \" + .user.login + \" \" + .body[0:50]"

@@ -37,6 +37,25 @@ echo_info "GitHub event          : ${GITHUB_EVENT_NAME}"
 
 echo_info ""
 echo_info "--------------------------------------------"
+echo_info "Checking staging status"
+echo_info "--------------------------------------------"
+echo_info ""
+
+readonly PR_NUMBER=`echo ${GITHUB_REF} | awk -F/ '{print $3}'`
+readonly COMMENTS_URL="https://api.github.com/repos/hiranya911/firecloud/issues/${PR_NUMBER}/comments"
+readonly STATUS=" github-actions\\[bot\\] Staging successful$"
+readonly JQ_PATTERN=".[] | (.id|tostring) + \" \" + .user.login + \" \" + .body[0:50]"
+readonly STATUS_UPDATED=`curl -s ${COMMENTS_URL} | jq -r "${JQ_PATTERN}" | grep "${STATUS}"` || true
+if [[ -z "${STATUS_UPDATED}" ]]; then
+  echo_warn "Staging process clearance not found."
+  terminate
+else
+  echo_info "Staging process cleared: ${STATUS_UPDATED}"
+fi
+
+
+echo_info ""
+echo_info "--------------------------------------------"
 echo_info "Extracting release version"
 echo_info "--------------------------------------------"
 echo_info ""
