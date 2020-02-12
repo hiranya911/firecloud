@@ -18,7 +18,7 @@ on:
   # Only run the workflow when a PR is updated or when a developer explicitly requests
   # a build by sending a 'firebase_build' event.
   pull_request:
-    types: [opened, synchronize, labeled]
+    types: [opened, synchronize]
 
   repository_dispatch:
     types:
@@ -61,3 +61,7 @@ jobs:
       with:
         name: dist
         path: dist
+
+    - uses: hmarr/auto-approve-action@v2.0.0
+      with:
+        github-token: "${{ secrets.GITHUB_TOKEN }}"
