@@ -63,9 +63,10 @@ jobs:
         name: dist
         path: dist
 
-    - name: Approve pull request
-      uses: andrewmusgrave/automatic-pull-request-review@0.0.2
-      with:
-        repo-token: ${{ secrets.GITHUB_TOKEN }}
-        event: COMMENT
-        body: Staging successful.
+    - name: Update PR status
+      if: success() || failure()
+      run: ./.github/scripts/update_pull_request.sh
+      env:
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        STAGING_SUCCESSFUL: ${{ success() }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
