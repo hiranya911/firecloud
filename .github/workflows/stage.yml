@@ -48,7 +48,9 @@ jobs:
         echo Reviews ${{github.event.pull_request.reviews.*.body}}
 
     - name: Run unit tests
-      run: echo Running tests
+      run: |
+        echo Running tests
+        exit 1
 
     - name: Package release artifacts
       id: artifacts
