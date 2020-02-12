@@ -42,33 +42,26 @@ echo_info "Checking staging status"
 echo_info "--------------------------------------------"
 echo_info ""
 
-curl ${COMMENTS_URL} -s -H "Authorization: Bearer ${GITHUB_TOKEN}" > comments.out
-
-# Find the last comment made by the github-actions[bot]
-readonly JQ_PATTERN="[.[] | select(.user.login==\"github-actions[bot]\").body] | last"
-readonly LAST_COMMENT=`jq -r "${JQ_PATTERN}" comments.out` || true
-readonly SUCCESS_PATTERN="^Staging successful at .*$"
-if [[ "${LAST_COMMENT}" == "null" ]]; then
-  echo_warn "Staging process clearance not found."
-  terminate
-elif ! [[ "${LAST_COMMENT}" =~ ${SUCCESS_PATTERN} ]]; then
-  echo_warn "Staging process failed: ${LAST_COMMENT}"
-  terminate
-fi
-
-readonly LAST_STAGED_COMMIT=`echo ${LAST_COMMENT} | awk '{print $NF}'`
-echo_info "Release last staged at: ${LAST_STAGED_COMMIT}"
-
-curl ${COMMITS_URL} -s -H "Authorization: Bearer ${GITHUB_TOKEN}" > commits.out
-
 # Find the last commit made on the PR.
+echo_info "Loading commits from ${COMMITS_URL}"
+curl ${COMMITS_URL} -s -H "Authorization: Bearer ${GITHUB_TOKEN}" -o commits.out
 readonly LAST_COMMIT=`jq -r ".[-1].sha" commits.out` || true
 echo_info "Last commit in the release PR: ${LAST_COMMIT}"
 
-if [[ "${LAST_STAGED_COMMIT}" != "${LAST_COMMIT}" ]]; then
-  echo_warn "Last commit on the PR does not match the last staged."
+# Find the comments made by the github-actions[bot].
+echo_info "Loading comments from ${COMMENT_URL}"
+curl ${COMMENTS_URL} -s -H "Authorization: Bearer ${GITHUB_TOKEN}" -o comments.out
+
+# Check if the last commit on the PR has been successfully staged.
+readonly STAGING_RESULTS=".[] | select(.user.login==\"github-actions[bot]\").body"
+readonly APPROVAL_PATTERN="^Staging successful at ${LAST_COMMIT}$"
+readonly APPROVAL=`jq -r "${STAGING_RESULTS}" comments.out | grep "${APPROVAL_PATTERN}"` || true
+if [[ -z "${APPROVAL}" ]]; then
+  echo_warn "Staging process has not approved ${LAST_COMMIT}."
   terminate
 fi
+
+echo_info "Staging approval found: ${APPROVAL}"
 
 
 echo_info ""
