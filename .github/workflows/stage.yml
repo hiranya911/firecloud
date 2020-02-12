@@ -69,7 +69,7 @@ jobs:
     - name: Comment PR
       if: github.event.pull_request
       run: |
-        curl $COMMENTS_URL \
+        curl -v $COMMENTS_URL \
           -s \
           -H 'Authorization: Bearer $GITHUB_TOKEN' \
           --data '{"body": "$MESSAGE"}'
