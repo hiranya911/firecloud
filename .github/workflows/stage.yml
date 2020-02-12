@@ -62,6 +62,9 @@ jobs:
         name: dist
         path: dist
 
-    - uses: hmarr/auto-approve-action@v2.0.0
+    - name: Approve pull request
+      uses: andrewmusgrave/automatic-pull-request-review@0.0.2
       with:
-        github-token: "${{ secrets.GITHUB_TOKEN }}"
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+        event: COMMENT
+        body: Staging successful.
