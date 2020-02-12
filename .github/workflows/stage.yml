@@ -45,6 +45,7 @@ jobs:
       run: |
         echo Installing dependencies
         echo Triggered by ${{ github.event.action }}
+        echo Reviews ${{github.event.pull_request.reviews.*.body}}
 
     - name: Run unit tests
       run: echo Running tests
