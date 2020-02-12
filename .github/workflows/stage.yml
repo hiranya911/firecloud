@@ -42,10 +42,12 @@ jobs:
         ref: ${{ github.event.client_payload.ref || github.ref }}
 
     - name: Install dependencies
-      run: echo Installing dependencies
+      run: |
+        echo Installing dependencies
+        echo Triggered by ${{ github.event.action }}
 
     - name: Run unit tests
-      run: Running tests
+      run: echo Running tests
 
     - name: Package release artifacts
       run: |
