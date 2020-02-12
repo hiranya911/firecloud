@@ -3,14 +3,15 @@
 set -e
 set -u
 
-if [[ -n "${STAGING_SUCCESSFUL}" ]]; then
-    readonly MESSAGE="Staging successful at ${HEAD_COMMIT_SHA}"
-else
-    readonly MESSAGE="Staging failed at ${HEAD_COMMIT_SHA}"
-fi
-
-curl "${COMMENTS_URL}" \
+readonly STATUS_CODE=`curl "${COMMENTS_URL}" \
     -s \
     -d "{\"body\": \"${MESSAGE}\"}" \
+    --write-out "%{http_code}" \
     -o /dev/null \
-    -H "Authorization: Bearer ${GITHUB_TOKEN}"
+    -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+    -H "Content-type: application/json"`
+
+if [[ "${STATUS_CODE}" -ne 201 ]]; then
+    echo "Request failed with status: ${STATUS_CODE}"
+    exit 1
+fi

@@ -66,9 +66,10 @@ jobs:
         path: dist
 
     # If triggered by a pull request, add a comment to it indicating success.
-    - name: Comment PR
+    - name: Add comment
       if: github.event.pull_request
-      uses: thollander/actions-comment-pull-request@v1
-      with:
-        message: Staging successful at ${{ github.event.pull_request.head.sha }}
+      run: ./.github/scripts/update_pull_request.sh
+      env:
+        COMMENTS_URL: ${{ github.event.pull_request.comments_url }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        MESSAGE: Staging successful at ${{ github.event.pull_request.head.sha }}
