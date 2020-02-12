@@ -34,6 +34,7 @@ echo_info "Git revision          : ${GITHUB_SHA}"
 echo_info "Workflow triggered by : ${GITHUB_ACTOR}"
 echo_info "GitHub event          : ${GITHUB_EVENT_NAME}"
 echo_info "GitHub ref            : ${GITHUB_REF}"
+echo_info "Pull request          : ${PR_NUMBER}"
 
 
 echo_info ""
@@ -42,7 +43,6 @@ echo_info "Checking staging status"
 echo_info "--------------------------------------------"
 echo_info ""
 
-readonly PR_NUMBER=`echo ${GITHUB_REF} | awk -F/ '{print $3}'`
 readonly COMMENTS_URL="https://api.github.com/repos/hiranya911/firecloud/issues/${PR_NUMBER}/comments"
 readonly STATUS=" github-actions\\[bot\\] Staging successful$"
 readonly JQ_PATTERN=".[] | (.id|tostring) + \" \" + .user.login + \" \" + .body[0:50]"

@@ -49,6 +49,8 @@ jobs:
     - name: Publish preflight check
       id: preflight
       run: ./.github/scripts/prepare_release.sh
+      env:
+        PR_NUMBER: ${{ github.event.pull_request.number }}
 
     # We pull this action from a custom fork of a contributor until
     # https://github.com/actions/create-release/pull/32 is merged. Also note that v1 of
