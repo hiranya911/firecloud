@@ -44,8 +44,8 @@ echo_info "--------------------------------------------"
 echo_info ""
 
 readonly COMMENTS_URL="https://api.github.com/repos/hiranya911/firecloud/issues/${PR_NUMBER}/comments"
-readonly STATUS=" github-actions\\[bot\\] Staging successful$"
-readonly JQ_PATTERN=".[] | (.id|tostring) + \" \" + .user.login + \" \" + .body[0:50]"
+readonly STATUS=" github-actions\\[bot\\] Staging successful at"
+readonly JQ_PATTERN=".[-1] | (.id|tostring) + \" \" + .user.login + \" \" + .body[0:50]"
 readonly STATUS_UPDATED=`curl -s ${COMMENTS_URL} | jq -r "${JQ_PATTERN}" | grep "${STATUS}"` || true
 if [[ -z "${STATUS_UPDATED}" ]]; then
   echo_warn "Staging process clearance not found."
