@@ -77,3 +77,11 @@ jobs:
         contains(github.event.pull_request.labels.*.name, 'release:tweet')
       run: echo Posting to Twitter
       continue-on-error: true
+
+    - name: Update pull request
+      if: github.event.pull_request
+      run: ./.github/scripts/update_pull_request.sh
+      env:
+        COMMENTS_URL: ${{ github.event.pull_request.comments_url }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        MESSAGE: "Successfully published as ${{ steps.preflight.outputs.version }} :tada:"
