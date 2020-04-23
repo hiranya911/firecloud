@@ -11,3 +11,6 @@ Test 9: Dry run check
 Test 10: Release from branch
 Test 11: Here goes nothing...
 Test 12: Comment after publish
+
+Test 13: New release flow for Go
+Test 14: Trying again with master restrictions laxed
