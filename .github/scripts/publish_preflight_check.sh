@@ -1,11 +1,19 @@
 #!/bin/bash
 
-###################################### Outputs #####################################
+# Copyright 2020 Google Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-# 1. version: The version of this release including the 'v' prefix (e.g. v1.2.3).
-# 2. changelog: Formatted changelog text for this release.
-
-####################################################################################
 
 set -e
 set -u
@@ -29,39 +37,11 @@ function terminate() {
 }
 
 
-echo_info "Starting release preflight..."
+echo_info "Starting publish preflight check..."
 echo_info "Git revision          : ${GITHUB_SHA}"
+echo_info "Git ref               : ${GITHUB_REF}"
 echo_info "Workflow triggered by : ${GITHUB_ACTOR}"
 echo_info "GitHub event          : ${GITHUB_EVENT_NAME}"
-echo_info "GitHub ref            : ${GITHUB_REF}"
-
-
-echo_info ""
-echo_info "--------------------------------------------"
-echo_info "Checking staging status"
-echo_info "--------------------------------------------"
-echo_info ""
-
-# Find the last commit made on the PR.
-echo_info "Loading commits from ${COMMITS_URL}"
-curl ${COMMITS_URL} -s -H "Authorization: Bearer ${GITHUB_TOKEN}" -o commits.out
-readonly LAST_COMMIT=`jq -r ".[-1].sha" commits.out` || true
-echo_info "Last commit in the release PR: ${LAST_COMMIT}"
-
-# Find the comments made by the github-actions[bot].
-echo_info "Loading comments from ${COMMENTS_URL}"
-curl ${COMMENTS_URL} -s -H "Authorization: Bearer ${GITHUB_TOKEN}" -o comments.out
-
-# Check if the last commit on the PR has been successfully staged.
-readonly STAGING_RESULTS=".[] | select(.user.login==\"github-actions[bot]\").body"
-readonly APPROVAL_PATTERN="^Staging successful at ${LAST_COMMIT}$"
-readonly APPROVAL=`jq -r "${STAGING_RESULTS}" comments.out | grep "${APPROVAL_PATTERN}"` || true
-if [[ -z "${APPROVAL}" ]]; then
-  echo_warn "Staging process has not approved ${LAST_COMMIT}."
-  terminate
-fi
-
-echo_info "Staging approval found: ${APPROVAL}"
 
 
 echo_info ""
@@ -80,7 +60,7 @@ if [[ -z "${RELEASE_VERSION}" ]]; then
 fi
 
 if [[ ! "${RELEASE_VERSION}" =~ ^([0-9]*)\.([0-9]*)\.([0-9]*)$ ]]; then
-  echo_warn "Malformed release version string: ${RELEASE_VERSION}"
+  echo_warn "Malformed release version string: ${RELEASE_VERSION}. Exiting."
   terminate
 fi
 
@@ -100,13 +80,13 @@ echo ""
 
 readonly EXISTING_TAG=`git rev-parse -q --verify "refs/tags/v${RELEASE_VERSION}"` || true
 if [[ -n "${EXISTING_TAG}" ]]; then
-  echo_warn "Tag v${RELEASE_VERSION} already exists."
-  echo_warn "If the tag was created in a previous failed attempt, delete it and try again."
-  echo_warn "   $ git tag -d v${RELEASE_VERSION}"
-  echo_warn "   $ git push --delete origin v${RELEASE_VERSION}"
+  echo_warn "Tag v${RELEASE_VERSION} already exists. Exiting."
+  echo_warn "If the tag was created in a previous unsuccessful attempt, delete it and try again."
+  echo_warn "  $ git tag -d v${RELEASE_VERSION}"
+  echo_warn "  $ git push --delete origin v${RELEASE_VERSION}"
 
-  readonly RELEASE_URL="https://github.com/hiranya911/firecloud/releases/tag/v${RELEASE_VERSION}"
-  echo_warn "Delete any corresponding releases at ${RELEASE_URL}"
+  readonly RELEASE_URL="https://github.com/firebase/firebase-admin-go/releases/tag/v${RELEASE_VERSION}"
+  echo_warn "Delete any corresponding releases at ${RELEASE_URL}."
   terminate
 fi
 
@@ -119,9 +99,10 @@ echo_info "Generating changelog"
 echo_info "--------------------------------------------"
 echo_info ""
 
-echo_info "---< git fetch origin master --prune --unshallow >---"
-git fetch origin master --prune --unshallow
+echo_info "---< git fetch origin dev --prune --unshallow >---"
+git fetch origin dev --prune --unshallow
 echo ""
+
 echo_info "Generating changelog from history..."
 readonly CURRENT_DIR=$(dirname "$0")
 readonly CHANGELOG=`${CURRENT_DIR}/generate_changelog.sh`
