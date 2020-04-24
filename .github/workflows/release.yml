@@ -70,7 +70,7 @@ jobs:
 
     - name: Publish preflight check
       id: preflight
-      run: echo Preflight
+      run: ./.github/scripts/publish_preflight_check.sh
 
     - name: Merge to master
       uses: devmasx/merge-branch@b57c127024eb70aef25b76a54e586638d17ee085
