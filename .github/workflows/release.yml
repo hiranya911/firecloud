@@ -39,13 +39,13 @@ jobs:
     # When manually triggering the build, the requester can specify a target branch or a tag
     # via the 'ref' client parameter.
     steps:
-    - name: Checkout source for staging
+    - name: Check out code
       uses: actions/checkout@v2
       with:
         ref: ${{ github.event.client_payload.ref || github.ref }}
 
-    - name: Install and build
-      run: echo Running tests and stuff
+    - name: Run Tests
+      run: echo Running tests
 
   publish_release:
     needs: stage_release
@@ -65,21 +65,35 @@ jobs:
     steps:
     - name: Checkout source for publish
       uses: actions/checkout@v2
-
-    - name: Merge by labeled
-      uses: devmasx/merge-branch@v1.1.0
       with:
-        type: now
-        target_branch: master
-      env:
-        GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        persist-credentials: false
 
     - name: Publish preflight check
       id: preflight
       run: echo Preflight
 
+    - name: Merge to master
+      uses: devmasx/merge-branch@b57c127024eb70aef25b76a54e586638d17ee085
+      with:
+        type: now
+        target_branch: master
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    # We pull this action from a custom fork of a contributor until
+    # https://github.com/actions/create-release/pull/32 is merged. Also note that v1 of
+    # this action does not support the "body" parameter.
     - name: Create release tag
-      run: echo Tagging
+      uses: fleskesvor/create-release@1a72e235c178bf2ae6c51a8ae36febc24568c5fe
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.preflight.outputs.version }}
+        release_name: Firecloud ${{ steps.preflight.outputs.version }}
+        body: ${{ steps.preflight.outputs.changelog }}
+        commitish: master
+        draft: false
+        prerelease: false
 
     - name: Post to Twitter
-      run: echo Sending Tweet
+      run: Sending Tweet
