@@ -1,8 +1,9 @@
 package child
 
 import (
-	"firego/v3"
 	"fmt"
+
+	"github.com/hiranya911/firecloud/firego/v4"
 )
 
 // SayHello says hello.
