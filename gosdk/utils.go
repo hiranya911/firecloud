@@ -1,12 +1,12 @@
 package gosdk
 
-import "github.com/hiranya911/firecloud/gosdk/child"
+import "github.com/hiranya911/firecloud/gosdk/v6/child"
 
 type App struct {
 }
 
 func (app *App) Info() string {
-	return "App"
+	return "App@v6"
 }
 
 func (app *App) Child() *child.Client {
